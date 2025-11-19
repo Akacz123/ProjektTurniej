@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace EsportsTournament.API.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20251119155750_AddTournamentImage")]
-    partial class AddTournamentImage
+    [Migration("20251119171850_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

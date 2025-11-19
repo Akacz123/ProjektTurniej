@@ -14,8 +14,9 @@ namespace EsportsTournament.API.Data
         public DbSet<User> Users { get; set; }
         public DbSet<Game> Games { get; set; }
         public DbSet<Tournament> Tournaments { get; set; }
+        public DbSet<Team> Teams { get; set; }
+        public DbSet<TeamMember> TeamMembers { get; set; }
 
-        // Konfiguracja dodatkowa (np. unikalne pola)
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -33,6 +34,7 @@ namespace EsportsTournament.API.Data
             modelBuilder.Entity<Game>()
                 .HasIndex(g => g.GameName)
                 .IsUnique();
+
         }
     }
 }

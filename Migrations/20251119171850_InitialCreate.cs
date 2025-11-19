@@ -68,7 +68,8 @@ namespace EsportsTournament.API.Migrations
                     TournamentFormat = table.Column<string>(type: "character varying(30)", maxLength: 30, nullable: false),
                     RegistrationType = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
                     Status = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    ImageUrl = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>
                 {

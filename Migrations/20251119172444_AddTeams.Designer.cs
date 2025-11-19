@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace EsportsTournament.API.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20251119134809_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20251119172444_AddTeams")]
+    partial class AddTeams
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -59,6 +59,70 @@ namespace EsportsTournament.API.Migrations
                     b.ToTable("Games");
                 });
 
+            modelBuilder.Entity("EsportsTournament.API.Models.Team", b =>
+                {
+                    b.Property<int>("TeamId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("TeamId"));
+
+                    b.Property<int>("CaptainId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("text");
+
+                    b.Property<string>("LogoUrl")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("TeamName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.HasKey("TeamId");
+
+                    b.HasIndex("CaptainId");
+
+                    b.ToTable("Teams");
+                });
+
+            modelBuilder.Entity("EsportsTournament.API.Models.TeamMember", b =>
+                {
+                    b.Property<int>("MemberId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("MemberId"));
+
+                    b.Property<DateTime>("JoinedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Role")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<int>("TeamId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("MemberId");
+
+                    b.HasIndex("TeamId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("TeamMembers");
+                });
+
             modelBuilder.Entity("EsportsTournament.API.Models.Tournament", b =>
                 {
                     b.Property<int>("TournamentId")
@@ -78,6 +142,9 @@ namespace EsportsTournament.API.Migrations
 
                     b.Property<int>("GameId")
                         .HasColumnType("integer");
+
+                    b.Property<string>("ImageUrl")
+                        .HasColumnType("text");
 
                     b.Property<int?>("MaxParticipants")
                         .HasColumnType("integer");
@@ -178,6 +245,36 @@ namespace EsportsTournament.API.Migrations
                         .IsUnique();
 
                     b.ToTable("Users");
+                });
+
+            modelBuilder.Entity("EsportsTournament.API.Models.Team", b =>
+                {
+                    b.HasOne("EsportsTournament.API.Models.User", "Captain")
+                        .WithMany()
+                        .HasForeignKey("CaptainId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Captain");
+                });
+
+            modelBuilder.Entity("EsportsTournament.API.Models.TeamMember", b =>
+                {
+                    b.HasOne("EsportsTournament.API.Models.Team", "Team")
+                        .WithMany()
+                        .HasForeignKey("TeamId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("EsportsTournament.API.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Team");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("EsportsTournament.API.Models.Tournament", b =>
