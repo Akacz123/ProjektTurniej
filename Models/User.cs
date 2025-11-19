@@ -8,13 +8,13 @@ namespace EsportsTournament.API.Models
         [Key] // To oznacza Primary Key
         public int UserId { get; set; }
 
-        [Required] // Not Null
-        [MaxLength(50)] // Varchar(50)
+        [Required] 
+        [MaxLength(50)]
         public string Username { get; set; } = string.Empty;
 
         [Required]
         [MaxLength(100)]
-        [EmailAddress] // Dodatkowa walidacja formatu email
+        [EmailAddress] 
         public string Email { get; set; } = string.Empty;
 
         [Required]
@@ -22,21 +22,21 @@ namespace EsportsTournament.API.Models
         public string PasswordHash { get; set; } = string.Empty;
 
         [MaxLength(50)]
-        public string? FirstName { get; set; } // Znak zapytania oznacza, że może być Null
+        public string? FirstName { get; set; }
 
         [MaxLength(50)]
         public string? LastName { get; set; }
 
         [MaxLength(20)]
-        public string Role { get; set; } = "user"; // Domyślna wartość
+        public string Role { get; set; } = "user";
 
         [MaxLength(255)]
         public string? AvatarUrl { get; set; }
 
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow; // Domyślnie aktualny czas
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
-        public bool IsActive { get; set; } = true; // Domyślnie 1 (true)
+        public bool IsActive { get; set; } = true; 
     }
 }
