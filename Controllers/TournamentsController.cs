@@ -6,13 +6,12 @@ using System.Net.NetworkInformation;
 
 namespace EsportsTournament.API.Controllers
 {
-    [Route("api/[controller]")] // To ustala adres na: /api/tournaments
+    [Route("api/[controller]")]
     [ApiController]
     public class TournamentsController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
 
-        // Konstruktor: Tutaj "wstrzykujemy" połączenie do bazy danych
         public TournamentsController(ApplicationDbContext context)
         {
             _context = context;
@@ -23,12 +22,16 @@ namespace EsportsTournament.API.Controllers
         {
             var query = _context.Tournaments
                 .Include(t => t.Game)
+                .Include(t => t.Organizer)
                 .AsQueryable();
+
             if (!string.IsNullOrEmpty(status))
             {
                 query = query.Where(t => t.Status == status);
             }
+
             query = query.OrderBy(t => t.StartDate);
+
             return await query.ToListAsync();
         }
 
