@@ -14,7 +14,7 @@ namespace EsportsTournament.API.Models
 
         [ForeignKey("Captain")]
         public int CaptainId { get; set; }
-        public User? Captain { get; set; } // Relacja do tabeli Users
+        public User? Captain { get; set; } 
 
         [MaxLength(255)]
         public string? LogoUrl { get; set; }

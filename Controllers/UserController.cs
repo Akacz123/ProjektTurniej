@@ -16,14 +16,13 @@ namespace EsportsTournament.API.Controllers
             _context = context;
         }
 
-        // GET: api/Users
         [HttpGet]
         public async Task<ActionResult<IEnumerable<User>>> GetUsers()
         {
             return await _context.Users.ToListAsync();
         }
 
-        // POST: api/Users
+
         [HttpPost]
         public async Task<ActionResult<User>> CreateUser(User user)
         {

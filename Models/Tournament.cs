@@ -12,12 +12,10 @@ namespace EsportsTournament.API.Models
         [MaxLength(150)]
         public string TournamentName { get; set; } = string.Empty;
 
-        // Klucz obcy do Game
         [ForeignKey("Game")]
         public int GameId { get; set; }
-        public Game? Game { get; set; } // To pozwala łatwo pobrać dane gry dla turnieju
+        public Game? Game { get; set; } 
 
-        // Klucz obcy do User (Organizator)
         [ForeignKey("Organizer")]
         public int? OrganizerId { get; set; }
         public User? Organizer { get; set; }

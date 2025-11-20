@@ -5,7 +5,7 @@ namespace EsportsTournament.API.Models
 {
     public class User
     {
-        [Key] // To oznacza Primary Key
+        [Key]
         public int UserId { get; set; }
 
         [Required] 

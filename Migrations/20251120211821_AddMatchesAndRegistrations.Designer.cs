@@ -3,6 +3,7 @@ using System;
 using EsportsTournament.API.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace EsportsTournament.API.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251120211821_AddMatchesAndRegistrations")]
+    partial class AddMatchesAndRegistrations
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -166,93 +169,6 @@ namespace EsportsTournament.API.Migrations
                     b.ToTable("MatchResults");
                 });
 
-            modelBuilder.Entity("EsportsTournament.API.Models.Notification", b =>
-                {
-                    b.Property<int>("NotificationId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("NotificationId"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<bool>("IsRead")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("Message")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("NotificationType")
-                        .IsRequired()
-                        .HasMaxLength(30)
-                        .HasColumnType("character varying(30)");
-
-                    b.Property<int?>("RelatedId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("RelatedType")
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasMaxLength(150)
-                        .HasColumnType("character varying(150)");
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("integer");
-
-                    b.HasKey("NotificationId");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("Notifications");
-                });
-
-            modelBuilder.Entity("EsportsTournament.API.Models.PlayerStatistic", b =>
-                {
-                    b.Property<int>("StatId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("StatId"));
-
-                    b.Property<int>("GameId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("MatchesLost")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("MatchesPlayed")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("MatchesWon")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("TournamentsParticipated")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("TournamentsWon")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("integer");
-
-                    b.HasKey("StatId");
-
-                    b.HasIndex("GameId");
-
-                    b.HasIndex("UserId", "GameId")
-                        .IsUnique();
-
-                    b.ToTable("PlayerStatistics");
-                });
-
             modelBuilder.Entity("EsportsTournament.API.Models.Team", b =>
                 {
                     b.Property<int>("TeamId")
@@ -315,48 +231,6 @@ namespace EsportsTournament.API.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("TeamMembers");
-                });
-
-            modelBuilder.Entity("EsportsTournament.API.Models.TeamStatistic", b =>
-                {
-                    b.Property<int>("StatId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("StatId"));
-
-                    b.Property<int>("GameId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("MatchesLost")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("MatchesPlayed")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("MatchesWon")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("TeamId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("TournamentsParticipated")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("TournamentsWon")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("StatId");
-
-                    b.HasIndex("GameId");
-
-                    b.HasIndex("TeamId", "GameId")
-                        .IsUnique();
-
-                    b.ToTable("TeamStatistics");
                 });
 
             modelBuilder.Entity("EsportsTournament.API.Models.Tournament", b =>
@@ -547,56 +421,6 @@ namespace EsportsTournament.API.Migrations
                     b.ToTable("Users");
                 });
 
-            modelBuilder.Entity("EsportsTournament.API.Models.UserReport", b =>
-                {
-                    b.Property<int>("ReportId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("ReportId"));
-
-                    b.Property<string>("AdminNotes")
-                        .HasColumnType("text");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Description")
-                        .HasColumnType("text");
-
-                    b.Property<int?>("MatchId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Reason")
-                        .IsRequired()
-                        .HasMaxLength(30)
-                        .HasColumnType("character varying(30)");
-
-                    b.Property<int>("ReportedUserId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("ReporterId")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime?>("ResolvedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
-
-                    b.HasKey("ReportId");
-
-                    b.HasIndex("MatchId");
-
-                    b.HasIndex("ReportedUserId");
-
-                    b.HasIndex("ReporterId");
-
-                    b.ToTable("UserReports");
-                });
-
             modelBuilder.Entity("EsportsTournament.API.Models.Match", b =>
                 {
                     b.HasOne("EsportsTournament.API.Models.Tournament", "Tournament")
@@ -633,36 +457,6 @@ namespace EsportsTournament.API.Migrations
                     b.Navigation("Reporter");
                 });
 
-            modelBuilder.Entity("EsportsTournament.API.Models.Notification", b =>
-                {
-                    b.HasOne("EsportsTournament.API.Models.User", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("EsportsTournament.API.Models.PlayerStatistic", b =>
-                {
-                    b.HasOne("EsportsTournament.API.Models.Game", "Game")
-                        .WithMany()
-                        .HasForeignKey("GameId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("EsportsTournament.API.Models.User", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Game");
-
-                    b.Navigation("User");
-                });
-
             modelBuilder.Entity("EsportsTournament.API.Models.Team", b =>
                 {
                     b.HasOne("EsportsTournament.API.Models.User", "Captain")
@@ -691,25 +485,6 @@ namespace EsportsTournament.API.Migrations
                     b.Navigation("Team");
 
                     b.Navigation("User");
-                });
-
-            modelBuilder.Entity("EsportsTournament.API.Models.TeamStatistic", b =>
-                {
-                    b.HasOne("EsportsTournament.API.Models.Game", "Game")
-                        .WithMany()
-                        .HasForeignKey("GameId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("EsportsTournament.API.Models.Team", "Team")
-                        .WithMany()
-                        .HasForeignKey("TeamId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Game");
-
-                    b.Navigation("Team");
                 });
 
             modelBuilder.Entity("EsportsTournament.API.Models.Tournament", b =>
@@ -765,31 +540,6 @@ namespace EsportsTournament.API.Migrations
                     b.Navigation("Team");
 
                     b.Navigation("Tournament");
-                });
-
-            modelBuilder.Entity("EsportsTournament.API.Models.UserReport", b =>
-                {
-                    b.HasOne("EsportsTournament.API.Models.Match", "Match")
-                        .WithMany()
-                        .HasForeignKey("MatchId");
-
-                    b.HasOne("EsportsTournament.API.Models.User", "ReportedUser")
-                        .WithMany()
-                        .HasForeignKey("ReportedUserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("EsportsTournament.API.Models.User", "Reporter")
-                        .WithMany()
-                        .HasForeignKey("ReporterId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Match");
-
-                    b.Navigation("ReportedUser");
-
-                    b.Navigation("Reporter");
                 });
 #pragma warning restore 612, 618
         }
