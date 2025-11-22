@@ -1,0 +1,185 @@
+/* --- GŁÓWNY KONTENER KARTY --- */
+.container {
+    background-color: #1e1e1e; /* Ciemne tło karty */
+    border: 1px solid #333;
+    border-radius: 16px;
+    padding: 0; /* Reset paddingu, żeby obrazek dotykał krawędzi */
+    
+    /* Ustawienia wymiarów */
+    width: 100%;
+    max-width: 380px;
+    min-height: 500px; /* Stała minimalna wysokość dla równości kart */
+    
+    display: flex;
+    flex-direction: column;
+    
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    cursor: pointer;
+    overflow: hidden; /* Ważne dla zaokrąglonych rogów */
+}
+
+.container:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.5);
+    border-color: #007bff; /* Niebieska poświata przy najechaniu */
+}
+
+/* --- SEKCJA OBRAZKA (Banner) --- */
+/* To jest kontener na sam obrazek, żeby ładnie wyglądał */
+.bannerWrapper {
+    width: 100%;
+    height: 220px; /* Stała wysokość miejsca na obrazek */
+    background-color: #000; /* Czarne tło pod obrazkiem (jak pasy w kinie) */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-bottom: 1px solid #333;
+}
+
+.banner {
+    width: 100%;
+    height: 100%;
+    /* KLUCZOWA ZMIANA: contain sprawia, że widzisz CAŁY obrazek */
+    object-fit: contain; 
+}
+
+/* --- TREŚĆ KARTY --- */
+.contentWrapper {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1; /* Wypełnia resztę karty */
+}
+
+.title {
+    font-size: 22px;
+    font-weight: 700;
+    color: #ffffff;
+    text-align: center;
+    line-height: 1.3; /* Ustalamy odstęp między liniami */
+    
+    /* --- KLUCZOWA ZMIANA: SZTYWNA WYSOKOŚĆ --- */
+    /* 22px (czcionka) * 1.3 (interlinia) * 2 (liczba linii) ≈ 58px */
+    height: 58px; 
+    
+    /* Wyśrodkowanie tekstu wewnątrz tego pola (opcjonalne, ale ładniejsze) */
+    display: flex;
+    align-items: center;     /* Środek w pionie */
+    justify-content: center; /* Środek w poziomie */
+    
+    /* Margines pod tytułem */
+    margin: 0 0 15px 0;
+    
+    /* Zabezpieczenie: jeśli tytuł będzie miał 3 linie, utnie go z "..." */
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+}
+
+/* Informacja o czasie (np. Launches in 3 days) */
+.timeInfo {
+    font-size: 15px;
+    font-weight: 600;
+    color: #facc15; /* Żółty/Złoty kolor "gamingowy" */
+    text-align: center;
+    padding: 8px;
+    background-color: rgba(250, 204, 21, 0.1); /* Lekkie tło pod datą */
+    border-radius: 6px;
+    margin-bottom: 16px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Lista informacji */
+.list {
+    list-style-type: none;
+    padding: 0;
+    margin: auto 0 0 0; /* Dopycha listę do dołu karty */
+    width: 100%;
+}
+
+.list li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    font-size: 14px;
+    border-bottom: 1px solid #2c2c2c;
+}
+
+.list li:last-child {
+    border-bottom: none;
+}
+
+.list li strong {
+    color: #9ca3af; /* Szary */
+}
+
+.list li span {
+    color: #f3f4f6; /* Biały */
+    font-weight: 500;
+    text-align: right;
+}
+
+
+/* --- STYLE MODALA (Bez zmian funkcjonalnych, tylko estetyczne) --- */
+.modalTitle {
+    text-align: center;
+    font-size: 28px;
+    margin-bottom: 20px;
+    color: white;
+}
+
+.modalBanner {
+    width: 100%;
+    max-height: 300px;
+    object-fit: contain; /* W modalu też pokazujemy cały obrazek */
+    background-color: #000;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.modalDescription {
+    color: #d1d5db;
+    line-height: 1.6;
+    margin-bottom: 20px;
+    text-align: justify;
+}
+
+.modalList {
+    list-style: none;
+    padding: 0;
+    margin-bottom: 20px;
+}
+
+.modalList li {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid #444;
+}
+.modalList li span {
+    color: white;
+}
+
+.modalActions {
+    display: flex;
+    justify-content: center;
+    margin-top: 20px;
+}
+
+.registrationButton {
+    background-color: #2563eb; /* Niebieski przycisk */
+    color: white;
+    border: none;
+    padding: 12px 36px;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.registrationButton:hover {
+    background-color: #1d4ed8;
+}

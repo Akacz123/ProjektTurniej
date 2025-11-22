@@ -1,0 +1,57 @@
+/* Tło (overlay), które pokrywa całą stronę */
+.modalOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.8); /* Ciemniejsze tło */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    padding: 20px;
+}
+
+/* Okno z treścią modala */
+.modalContent {
+    background-color: #1e1e1e;
+    color: white;
+    padding: 30px;
+    border-radius: 12px;
+    max-width: 700px;
+    width: 100%;
+    position: relative;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+    max-height: 90vh;
+    overflow-y: auto; /* Włącza pionowe przewijanie */
+}
+
+/* Przycisk zamykania "X" */
+.closeButton {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    background: none;
+    border: none;
+    color: white;
+    font-size: 28px;
+    cursor: pointer;
+    z-index: 10;
+}
+
+/* Lepszy wygląd paska przewijania */
+.modalContent::-webkit-scrollbar {
+  width: 8px;
+}
+.modalContent::-webkit-scrollbar-track {
+  background: #2d2d2d;
+  border-radius: 4px;
+}
+.modalContent::-webkit-scrollbar-thumb {
+  background-color: #555;
+  border-radius: 4px;
+}
+.modalContent::-webkit-scrollbar-thumb:hover {
+  background-color: #777;
+}

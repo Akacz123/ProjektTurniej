@@ -1,0 +1,16 @@
+.container {
+    display: flex;
+    gap: 24px;
+    float: left;
+    width: 100%;
+    flex-wrap: wrap;
+}
+
+.nav {
+    display: flex;
+    float: left;
+}
+
+.mainContent {
+    display: flex;
+}
