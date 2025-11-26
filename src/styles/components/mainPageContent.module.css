@@ -1,35 +1,31 @@
 /* --- GŁÓWNY KONTENER KARTY --- */
 .container {
-    background-color: #1e1e1e; /* Ciemne tło karty */
+    background-color: #1e1e1e;
     border: 1px solid #333;
     border-radius: 16px;
-    padding: 0; /* Reset paddingu, żeby obrazek dotykał krawędzi */
-    
-    /* Ustawienia wymiarów */
+    padding: 0;
     width: 100%;
     max-width: 380px;
-    min-height: 500px; /* Stała minimalna wysokość dla równości kart */
-    
+    min-height: 500px;
     display: flex;
     flex-direction: column;
     
     transition: transform 0.2s ease, box-shadow 0.2s ease;
     cursor: pointer;
-    overflow: hidden; /* Ważne dla zaokrąglonych rogów */
+    overflow: hidden;
 }
 
 .container:hover {
     transform: translateY(-6px);
     box-shadow: 0 12px 24px rgba(0, 0, 0, 0.5);
-    border-color: #007bff; /* Niebieska poświata przy najechaniu */
+    border-color: #007bff;
 }
 
 /* --- SEKCJA OBRAZKA (Banner) --- */
-/* To jest kontener na sam obrazek, żeby ładnie wyglądał */
 .bannerWrapper {
     width: 100%;
-    height: 220px; /* Stała wysokość miejsca na obrazek */
-    background-color: #000; /* Czarne tło pod obrazkiem (jak pasy w kinie) */
+    height: 220px;
+    background-color: #000;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -39,7 +35,6 @@
 .banner {
     width: 100%;
     height: 100%;
-    /* KLUCZOWA ZMIANA: contain sprawia, że widzisz CAŁY obrazek */
     object-fit: contain; 
 }
 
@@ -48,7 +43,7 @@
     padding: 20px;
     display: flex;
     flex-direction: column;
-    flex-grow: 1; /* Wypełnia resztę karty */
+    flex-grow: 1;
 }
 
 .title {
@@ -56,34 +51,25 @@
     font-weight: 700;
     color: #ffffff;
     text-align: center;
-    line-height: 1.3; /* Ustalamy odstęp między liniami */
-    
-    /* --- KLUCZOWA ZMIANA: SZTYWNA WYSOKOŚĆ --- */
-    /* 22px (czcionka) * 1.3 (interlinia) * 2 (liczba linii) ≈ 58px */
+    line-height: 1.3;
     height: 58px; 
-    
-    /* Wyśrodkowanie tekstu wewnątrz tego pola (opcjonalne, ale ładniejsze) */
     display: flex;
-    align-items: center;     /* Środek w pionie */
-    justify-content: center; /* Środek w poziomie */
-    
-    /* Margines pod tytułem */
+    align-items: center;
+    justify-content: center;
     margin: 0 0 15px 0;
-    
     /* Zabezpieczenie: jeśli tytuł będzie miał 3 linie, utnie go z "..." */
     overflow: hidden;
     display: -webkit-box;
     -webkit-box-orient: vertical;
 }
 
-/* Informacja o czasie (np. Launches in 3 days) */
 .timeInfo {
     font-size: 15px;
     font-weight: 600;
-    color: #facc15; /* Żółty/Złoty kolor "gamingowy" */
+    color: #facc15;
     text-align: center;
     padding: 8px;
-    background-color: rgba(250, 204, 21, 0.1); /* Lekkie tło pod datą */
+    background-color: rgba(250, 204, 21, 0.1);
     border-radius: 6px;
     margin-bottom: 16px;
     text-transform: uppercase;
@@ -94,7 +80,7 @@
 .list {
     list-style-type: none;
     padding: 0;
-    margin: auto 0 0 0; /* Dopycha listę do dołu karty */
+    margin: auto 0 0 0;
     width: 100%;
 }
 
@@ -112,17 +98,17 @@
 }
 
 .list li strong {
-    color: #9ca3af; /* Szary */
+    color: #9ca3af;
 }
 
 .list li span {
-    color: #f3f4f6; /* Biały */
+    color: #f3f4f6;
     font-weight: 500;
     text-align: right;
 }
 
 
-/* --- STYLE MODALA (Bez zmian funkcjonalnych, tylko estetyczne) --- */
+/* --- STYLE MODALA --- */
 .modalTitle {
     text-align: center;
     font-size: 28px;
@@ -133,7 +119,7 @@
 .modalBanner {
     width: 100%;
     max-height: 300px;
-    object-fit: contain; /* W modalu też pokazujemy cały obrazek */
+    object-fit: contain;
     background-color: #000;
     border-radius: 8px;
     margin-bottom: 20px;
@@ -169,7 +155,7 @@
 }
 
 .registrationButton {
-    background-color: #2563eb; /* Niebieski przycisk */
+    background-color: #2563eb;
     color: white;
     border: none;
     padding: 12px 36px;

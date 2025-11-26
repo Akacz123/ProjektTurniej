@@ -1,0 +1,110 @@
+/* Główny kontener na cały ekran - centruje kartę */
+.pageContainer {
+    min-height: 100vh; 
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+/* Karta formularza */
+.authCard {
+    background-color: #1e1e1e;
+    border: 1px solid #333;
+    padding: 40px;
+    border-radius: 16px;
+    width: 100%;
+    max-width: 450px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+
+.title {
+    color: #ffffff;
+    font-size: 28px;
+    font-weight: bold;
+    text-align: center;
+    margin-bottom: 10px;
+}
+
+.subtitle {
+    color: #a0aec0;
+    text-align: center;
+    font-size: 14px;
+    margin-top: -15px;
+    margin-bottom: 10px;
+}
+
+/* Grupa inputa (etykieta + pole) */
+.inputGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.label {
+    color: #e2e8f0;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.input {
+    background-color: #2d2d2d;
+    border: 1px solid #444;
+    color: white;
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 16px;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.input:focus {
+    border-color: #facc15; /* Złoty kolor przy pisaniu */
+}
+
+/* Przycisk akcji */
+.submitButton {
+    background-color: #facc15;
+    color: #000000;
+    padding: 14px;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    margin-top: 10px;
+    transition: transform 0.1s, background-color 0.2s;
+}
+
+.submitButton:hover {
+    background-color: #eab308;
+}
+
+.submitButton:active {
+    transform: scale(0.98);
+}
+
+/* Linki pod formularzem */
+.footerText {
+    text-align: center;
+    color: #a0aec0;
+    font-size: 14px;
+    margin-top: 10px;
+}
+
+.link {
+    color: #facc15;
+    text-decoration: none;
+    font-weight: bold;
+    margin-left: 5px;
+}
+
+.link:hover {
+    text-decoration: underline;
+}

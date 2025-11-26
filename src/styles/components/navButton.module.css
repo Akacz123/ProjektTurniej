@@ -25,17 +25,16 @@
 }
 
 .button {
-  opacity: 0.6;            /* cały element przygaszony */
+  opacity: 0.6;
 }
 
-/* efekt po najechaniu */
 .button:hover {
-  background-color: rgba(255, 255, 255, 0.06); /* lekkie rozjaśnienie tła */
-  color: #6b7280;                               /* jaśniejszy tekst */
+  background-color: rgba(255, 255, 255, 0.06);
+  color: #6b7280;
   opacity: 1;
 }
 
 .button:hover .icon {
-  opacity: 1;               /* ikona robi się wyraźna */
+  opacity: 1;
   filter: brightness(1.4);
 }
