@@ -1,5 +1,6 @@
 ﻿using EsportsTournament.API.Data;
 using EsportsTournament.API.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Net.NetworkInformation;
@@ -36,8 +37,16 @@ namespace EsportsTournament.API.Controllers
         }
 
         [HttpPost]
+        [Authorize]
         public async Task<ActionResult<Tournament>> CreateTournament(Tournament tournament)
         {
+            var userIdString = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+
+            if (string.IsNullOrEmpty(userIdString))
+            {
+                return Unauthorized("Brak ID użytkownika w tokenie");
+            }
+            tournament.OrganizerId = int.Parse(userIdString);
             _context.Tournaments.Add(tournament);
             await _context.SaveChangesAsync();
             return CreatedAtAction(nameof(GetTournaments), new { id = tournament.TournamentId }, tournament);

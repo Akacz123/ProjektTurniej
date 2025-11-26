@@ -35,14 +35,16 @@ namespace EsportsTournament.API.Controllers
             
             string passwordHash = _passwordService.HashPassword(request.Password);
 
-           
+
             var newUser = new User
             {
                 Username = request.Username,
                 Email = request.Email,
-                PasswordHash = passwordHash, 
-                Role = "user" 
-               
+                PasswordHash = passwordHash,
+                Role = "user", 
+                FirstName = request.FirstName,
+                LastName = request.LastName,
+                AvatarUrl = request.AvatarUrl
             };
 
             _context.Users.Add(newUser);
