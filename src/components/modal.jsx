@@ -1,4 +1,4 @@
-import styles from '../styles/components/Modal.module.css';
+import styles from '../styles/components/modal.module.css';
 
 function Modal({ onClose, children }) {
     // Funkcja obsługująca kliknięcie w tło - zamyka modal
@@ -10,17 +10,11 @@ function Modal({ onClose, children }) {
     };
 
     return (
-        // Tło modala (overlay)
         <div className={styles.modalOverlay} onClick={handleBackdropClick}>
-            
-            {/* Właściwa treść modala */}
             <div className={styles.modalContent}>
-                {/* Przycisk do zamykania */}
                 <button className={styles.closeButton} onClick={onClose}>
-                    &times; {/* To jest znak "X" */}
+                    &times;
                 </button>
-                
-                {/* Tutaj renderowana jest zawartość przekazana do komponentu */}
                 {children}
             </div>
 

@@ -94,7 +94,6 @@ const SignUp = () => {
 
                 <p className={styles.footerText}>
                     Already have an account? 
-                    {/* Jeśli używasz React Router, zamień <a> na <Link to="/login"> */}
                     <Link to="/login" className={styles.link}>Log in</Link>
                 </p>
             </div>

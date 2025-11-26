@@ -1,4 +1,4 @@
-import styles from '../styles/components/NavButton.module.css';
+import styles from '../styles/components/navButton.module.css';
 
 function NavButton(props) {
   return (

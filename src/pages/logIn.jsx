@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import styles from '../styles/pages/auth.module.css';
-import { Link } from 'react-router-dom'; // Importujemy nasze nowe style
+import { Link } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
 
 const LogIn = () => {
@@ -53,7 +53,6 @@ const LogIn = () => {
 
                 <p className={styles.footerText}>
                     Don't have an account? 
-                    {/* Jeśli używasz React Router, zamień <a> na <Link to="/signup"> */}
                     <Link to="/signup" className={styles.link}>Sign up</Link>
                 </p>
             </div>

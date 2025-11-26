@@ -1,12 +1,9 @@
 import { useEffect, useState } from 'react';
-// Upewnij się, że ta ścieżka do CSS jest poprawna!
-import styles from '../styles/components/MainPageContent.module.css';
-// Upewnij się, że nazwy plików (duża/mała litera) zgadzają się z tym co masz w folderze!
+import styles from '../styles/components/mainPageContent.module.css';
 import Modal from './modal';   
 import Button from './Button';
 
 function MainPageContent(props) {
-    // Odbieramy dane przekazane przez TournamentList
     const {
         title,
         description,
@@ -24,7 +21,7 @@ function MainPageContent(props) {
     const [timeInfo, setTimeInfo] = useState("");
     const [isModalOpen, setIsModalOpen] = useState(false);
 
-    // --- LOGIKA DAT (Twoja oryginalna logika) ---
+    // --- LOGIKA DAT ---
     const safeEndDate = endDate ? endDate : startDate;
 
     const handleOpenModal = () => setIsModalOpen(true);
@@ -81,12 +78,11 @@ function MainPageContent(props) {
         }
     }, [state, startDate, safeEndDate]);
 
-    // --- WYGLĄD (Twoje klasy CSS) ---
+
     return (
         <>        
             <div className={styles.container} onClick={handleOpenModal}>
                 
-                {/* NOWOŚĆ: Kontener na obrazek, żeby go nie ucinało */}
                 <div className={styles.bannerWrapper}>
                     <img 
                         src={baner || 'https://placehold.co/600x400?text=No+Image'} 
@@ -95,7 +91,6 @@ function MainPageContent(props) {
                     />
                 </div>
 
-                {/* NOWOŚĆ: Kontener na teksty, żeby padding był ładny */}
                 <div className={styles.contentWrapper}>
                     <h3 className={styles.title}>{title}</h3>
 

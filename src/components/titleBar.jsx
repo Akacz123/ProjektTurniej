@@ -1,4 +1,4 @@
-import styles from "../styles/components/TitleBar.module.css";
+import styles from "../styles/components/titleBar.module.css";
 import Button from "./Button";
 import logo from "../assets/logo.png";
 import { useNavigate } from 'react-router-dom';
