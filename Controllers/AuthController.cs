@@ -1,0 +1,82 @@
+﻿using EsportsTournament.API.Data;
+using EsportsTournament.API.Models;
+using EsportsTournament.API.Models.DTOs; 
+using EsportsTournament.API.Services; 
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using ProjektTurniej.Services; 
+namespace EsportsTournament.API.Controllers
+{
+    [Route("api/[controller]")]
+    [ApiController]
+    public class AuthController : ControllerBase
+    {
+        private readonly ApplicationDbContext _context;
+        private readonly PasswordService _passwordService; 
+        private readonly JwtService _jwtService;           
+
+        public AuthController(ApplicationDbContext context, PasswordService passwordService, JwtService jwtService)
+        {
+            _context = context;
+            _passwordService = passwordService;
+            _jwtService = jwtService;
+        }
+
+        
+        [HttpPost("register")]
+        public async Task<IActionResult> Register([FromBody] EsportsTournament.API.Models.DTOs.RegisterRequest request)
+        {
+            
+            if (await _context.Users.AnyAsync(u => u.Username == request.Username || u.Email == request.Email))
+            {
+                return BadRequest(new { Message = "Użytkownik o podanej nazwie lub e-mailu już istnieje." });
+            }
+
+            
+            string passwordHash = _passwordService.HashPassword(request.Password);
+
+           
+            var newUser = new User
+            {
+                Username = request.Username,
+                Email = request.Email,
+                PasswordHash = passwordHash, 
+                Role = "user" 
+               
+            };
+
+            _context.Users.Add(newUser);
+            await _context.SaveChangesAsync();
+           
+            return Ok(new { Message = "Rejestracja pomyślna." });
+        }
+
+        
+        [HttpPost("login")]
+        public async Task<IActionResult> Login([FromBody] EsportsTournament.API.Models.DTOs.LoginRequest request)
+        {
+            
+            var user = await _context.Users
+                                     .FirstOrDefaultAsync(u => u.Username == request.Username);
+
+            if (user == null)
+            {
+                return Unauthorized(new { Message = "Nieprawidłowa nazwa użytkownika lub hasło." });
+            }
+
+            
+            bool isPasswordValid = _passwordService.VerifyPassword(request.Password, user.PasswordHash);
+
+            if (!isPasswordValid)
+            {
+                return Unauthorized(new { Message = "Nieprawidłowa nazwa użytkownika lub hasło." });
+            }
+
+            
+            string token = _jwtService.GenerateToken(user.UserId, user.Username, user.Role);
+
+            
+            return Ok(new { Token = token, Username = user.Username, Role = user.Role });
+        }
+    }
+}
