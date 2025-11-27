@@ -1,10 +1,10 @@
 using Microsoft.EntityFrameworkCore;
 using EsportsTournament.API.Data;
-using EsportsTournament.API.Services; 
-using ProjektTurniej.Services; 
-using Microsoft.AspNetCore.Authentication.JwtBearer; 
-using Microsoft.IdentityModel.Tokens; 
-using System.Text; 
+using EsportsTournament.API.Services;
+using ProjektTurniej.Services;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -38,10 +38,10 @@ builder.Services.AddAuthentication(options =>
 {
     options.TokenValidationParameters = new TokenValidationParameters
     {
-        ValidateIssuer = true, 
-        ValidateAudience = true, 
-        ValidateLifetime = true, 
-        ValidateIssuerSigningKey = true, 
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
 
         ValidIssuer = jwtIssuer,
         ValidAudience = jwtAudience,
