@@ -452,7 +452,7 @@ namespace EsportsTournament.API.Migrations
                     b.HasIndex("TournamentId", "UserId")
                         .IsUnique();
 
-                    b.ToTable("TournamentRegistrationsIndividual");
+                    b.ToTable("tournament_registrations_individual");
                 });
 
             modelBuilder.Entity("EsportsTournament.API.Models.TournamentRegistrationTeam", b =>

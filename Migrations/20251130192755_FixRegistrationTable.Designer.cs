@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace EsportsTournament.API.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20251120212255_AddRemainingModels")]
-    partial class AddRemainingModels
+    [Migration("20251130192755_FixRegistrationTable")]
+    partial class FixRegistrationTable
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -455,7 +455,7 @@ namespace EsportsTournament.API.Migrations
                     b.HasIndex("TournamentId", "UserId")
                         .IsUnique();
 
-                    b.ToTable("TournamentRegistrationsIndividual");
+                    b.ToTable("tournament_registrations_individual");
                 });
 
             modelBuilder.Entity("EsportsTournament.API.Models.TournamentRegistrationTeam", b =>

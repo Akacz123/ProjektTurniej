@@ -3,6 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace EsportsTournament.API.Models
 {
+    [Table("tournament_registrations_individual")]
     public class TournamentRegistrationIndividual
     {
         [Key]

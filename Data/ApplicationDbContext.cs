@@ -15,7 +15,7 @@ namespace EsportsTournament.API.Data
         public DbSet<Tournament> Tournaments { get; set; }
         public DbSet<Team> Teams { get; set; }
         public DbSet<TeamMember> TeamMembers { get; set; }
-        public DbSet<TournamentRegistrationIndividual> TournamentRegistrationsIndividual { get; set; }
+        public DbSet<TournamentRegistrationIndividual> TournamentRegistrationIndividual { get; set; }
         public DbSet<TournamentRegistrationTeam> TournamentRegistrationsTeam { get; set; }
         public DbSet<Match> Matches { get; set; }
         public DbSet<MatchResult> MatchResults { get; set; }
