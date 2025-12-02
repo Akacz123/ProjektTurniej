@@ -1,7 +1,9 @@
-﻿using EsportsTournament.API.Data;
+﻿using System.Security.Claims;
+using EsportsTournament.API.Data;
 using EsportsTournament.API.Models;
-using EsportsTournament.API.Models.DTOs; 
+using EsportsTournament.API.Models.DTOs;
 using EsportsTournament.API.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ProjektTurniej.Services;
@@ -70,6 +72,39 @@ namespace EsportsTournament.API.Controllers
             string token = _jwtService.GenerateToken(user.UserId, user.Username, user.Role);
 
             return Ok(new { Token = token, Username = user.Username, Role = user.Role });
+        }
+
+        [Authorize]
+        [HttpGet("me")]
+        public async Task<IActionResult> GetMe()
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+
+            if (userIdClaim == null)
+            {
+                return Unauthorized(new { Message = "Błąd tokena." });
+            }
+
+            int userId = int.Parse(userIdClaim.Value);
+
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.UserId == userId);
+
+            if (user == null)
+            {
+                return NotFound(new { Message = "Użytkownik nie został znaleziony." });
+            }
+
+            return Ok(new
+            {
+                Id = user.UserId,
+                Username = user.Username,
+                Email = user.Email,
+                Role = user.Role,
+                FirstName = user.FirstName,
+                LastName = user.LastName,
+                AvatarUrl = user.AvatarUrl,
+                IsActive = user.IsActive
+            });
         }
     }
 }
