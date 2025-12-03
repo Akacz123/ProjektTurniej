@@ -47,8 +47,20 @@ namespace EsportsTournament.API.Controllers
 
             if (string.IsNullOrEmpty(userIdString))
             {
-                return Unauthorized("Nie rozpoznano użytkownika. Zaloguj się ponownie.");
+                userIdString = User.FindFirst("sub")?.Value;
             }
+
+            if (string.IsNullOrEmpty(userIdString))
+            {
+                userIdString = User.FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub)?.Value;
+            }
+
+            if (string.IsNullOrEmpty(userIdString))
+            {
+                var claims = string.Join(", ", User.Claims.Select(c => $"{c.Type}={c.Value}"));
+                return Unauthorized($"Błąd tokena. Nie znaleziono ID. Dostępne claimy: {claims}");
+            }
+
             int userId = int.Parse(userIdString);
 
             if (await _context.Teams.AnyAsync(t => t.TeamName == team.TeamName))
