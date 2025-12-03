@@ -119,8 +119,7 @@ namespace EsportsTournament.API.Controllers
 
             return Ok(new { Message = "Pomyślnie dołączyłeś do drużyny!" });
         }
-        // --- METODA 1: Opuść drużynę (Dla każdego członka) ---
-        // DELETE: api/teams/5/leave
+
         [HttpDelete("{teamId}/leave")]
         [Authorize]
         public async Task<IActionResult> LeaveTeam(int teamId)
