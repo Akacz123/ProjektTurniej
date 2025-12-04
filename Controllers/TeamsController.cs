@@ -31,11 +31,7 @@ namespace EsportsTournament.API.Controllers
                 .Include(t => t.Captain)
                 .FirstOrDefaultAsync(t => t.TeamId == id);
 
-            if (team == null)
-            {
-                return NotFound();
-            }
-
+            if (team == null) return NotFound();
             return team;
         }
 
@@ -43,34 +39,15 @@ namespace EsportsTournament.API.Controllers
         [Authorize]
         public async Task<ActionResult<Team>> CreateTeam(Team team)
         {
-            var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-            if (string.IsNullOrEmpty(userIdString))
-            {
-                userIdString = User.FindFirst("sub")?.Value;
-            }
-
-            if (string.IsNullOrEmpty(userIdString))
-            {
-                userIdString = User.FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub)?.Value;
-            }
-
-            if (string.IsNullOrEmpty(userIdString))
-            {
-                var claims = string.Join(", ", User.Claims.Select(c => $"{c.Type}={c.Value}"));
-                return Unauthorized($"Błąd tokena. Nie znaleziono ID. Dostępne claimy: {claims}");
-            }
-
+            var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("sub")?.Value;
+            if (string.IsNullOrEmpty(userIdString)) return Unauthorized();
             int userId = int.Parse(userIdString);
 
             if (await _context.Teams.AnyAsync(t => t.TeamName == team.TeamName))
-            {
                 return BadRequest("Drużyna o takiej nazwie już istnieje.");
-            }
 
             team.CaptainId = userId;
             team.CreatedAt = DateTime.UtcNow;
-
             _context.Teams.Add(team);
             await _context.SaveChangesAsync();
 
@@ -79,15 +56,14 @@ namespace EsportsTournament.API.Controllers
                 TeamId = team.TeamId,
                 UserId = userId,
                 Role = "Captain",
+                Status = "Member",
                 JoinedAt = DateTime.UtcNow
             };
-
             _context.TeamMembers.Add(member);
             await _context.SaveChangesAsync();
 
             return CreatedAtAction(nameof(GetTeam), new { id = team.TeamId }, team);
         }
-
         [HttpPost("{teamId}/join")]
         [Authorize]
         public async Task<IActionResult> JoinTeam(int teamId)
@@ -95,91 +71,107 @@ namespace EsportsTournament.API.Controllers
             var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("sub")?.Value;
             if (string.IsNullOrEmpty(userIdString)) return Unauthorized();
             int userId = int.Parse(userIdString);
+            string username = User.FindFirst("username")?.Value ?? "Ktoś";
 
             var team = await _context.Teams.FindAsync(teamId);
-            if (team == null) return NotFound("Nie znaleziono takiej drużyny.");
+            if (team == null) return NotFound("Nie znaleziono drużyny.");
 
-            var alreadyMember = await _context.TeamMembers
-                .AnyAsync(m => m.TeamId == teamId && m.UserId == userId);
+            var alreadyMember = await _context.TeamMembers.AnyAsync(m => m.TeamId == teamId && m.UserId == userId);
+            if (alreadyMember) return BadRequest("Już należysz do tej drużyny (lub czekasz na akceptację).");
 
-            if (alreadyMember)
-            {
-                return BadRequest("Już należysz do tej drużyny.");
-            }
             var newMember = new TeamMember
             {
                 TeamId = teamId,
                 UserId = userId,
                 Role = "Member",
+                Status = "Pending", 
                 JoinedAt = DateTime.UtcNow
             };
-
             _context.TeamMembers.Add(newMember);
-            await _context.SaveChangesAsync();
 
-            return Ok(new { Message = "Pomyślnie dołączyłeś do drużyny!" });
+            var notification = new Notification
+            {
+                UserId = team.CaptainId,
+                Title = "Nowe zgłoszenie do drużyny",
+                Message = $"Gracz {username} chce dołączyć do Twojej drużyny {team.TeamName}.",
+                NotificationType = "TeamJoinRequest",
+                RelatedId = teamId,
+                RelatedType = "Team"
+            };
+            _context.Notifications.Add(notification);
+
+            await _context.SaveChangesAsync();
+            return Ok(new { Message = "Wysłano prośbę o dołączenie do kapitana." });
         }
 
-        [HttpDelete("{teamId}/leave")]
+        [HttpPost("{teamId}/approve/{userIdToApprove}")]
         [Authorize]
-        public async Task<IActionResult> LeaveTeam(int teamId)
+        public async Task<IActionResult> ApproveMember(int teamId, int userIdToApprove)
         {
-            var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("sub")?.Value;
-            if (string.IsNullOrEmpty(userIdString)) return Unauthorized();
-            int userId = int.Parse(userIdString);
+            var captainIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("sub")?.Value;
+            if (string.IsNullOrEmpty(captainIdString)) return Unauthorized();
+            int captainId = int.Parse(captainIdString);
 
             var team = await _context.Teams.FindAsync(teamId);
-            if (team == null) return NotFound("Nie znaleziono drużyny.");
-
-            if (team.CaptainId == userId)
-            {
-                return BadRequest("Jesteś kapitanem! Nie możesz opuścić drużyny. Musisz ją usunąć lub przekazać dowodzenie.");
-            }
+            if (team == null) return NotFound("Nie ma takiej drużyny.");
+            if (team.CaptainId != captainId) return StatusCode(403, "Tylko kapitan może akceptować członków.");
 
             var member = await _context.TeamMembers
-                .FirstOrDefaultAsync(m => m.TeamId == teamId && m.UserId == userId);
+                .FirstOrDefaultAsync(m => m.TeamId == teamId && m.UserId == userIdToApprove && m.Status == "Pending");
 
-            if (member == null)
+            if (member == null) return NotFound("Nie znaleziono oczekującego zgłoszenia od tego gracza.");
+
+            member.Status = "Member";
+
+            _context.Notifications.Add(new Notification
             {
-                return BadRequest("Nie jesteś członkiem tej drużyny.");
-            }
-            _context.TeamMembers.Remove(member);
-            await _context.SaveChangesAsync();
+                UserId = userIdToApprove,
+                Title = "Zgłoszenie przyjęte!",
+                Message = $"Zostałeś przyjęty do drużyny {team.TeamName}.",
+                NotificationType = "TeamJoinAccepted"
+            });
 
-            return Ok(new { Message = "Opuściłeś drużynę." });
+            await _context.SaveChangesAsync();
+            return Ok(new { Message = "Gracz został przyjęty do drużyny." });
         }
 
-        [HttpDelete("{teamId}/kick/{userIdToKick}")]
+        [HttpPost("{teamId}/invite/{friendId}")]
         [Authorize]
-        public async Task<IActionResult> KickMember(int teamId, int userIdToKick)
+        public async Task<IActionResult> InviteFriend(int teamId, int friendId)
         {
-            var requesterIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("sub")?.Value;
-            if (string.IsNullOrEmpty(requesterIdString)) return Unauthorized();
-            int requesterId = int.Parse(requesterIdString);
+            var captainIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("sub")?.Value;
+            if (string.IsNullOrEmpty(captainIdString)) return Unauthorized();
+            int captainId = int.Parse(captainIdString);
+
             var team = await _context.Teams.FindAsync(teamId);
-            if (team == null) return NotFound("Nie znaleziono drużyny.");
+            if (team == null) return NotFound("Nie ma takiej drużyny.");
+            if (team.CaptainId != captainId) return StatusCode(403, "Tylko kapitan może zapraszać.");
 
-            if (team.CaptainId != requesterId)
+            var areFriends = await _context.Friendships
+                .AnyAsync(f => (f.RequesterId == captainId && f.AddresseeId == friendId && f.Status == "Accepted") ||
+                               (f.RequesterId == friendId && f.AddresseeId == captainId && f.Status == "Accepted"));
+
+            if (!areFriends)
             {
-                return StatusCode(403, new { Message = "Tylko kapitan może wyrzucać graczy!" });
+                return BadRequest("Możesz zapraszać tylko swoich znajomych!");
             }
 
-            if (requesterId == userIdToKick)
-            {
-                return BadRequest("Nie możesz wyrzucić samego siebie. Użyj opcji 'Opuść drużynę'.");
-            }
+            if (await _context.TeamMembers.AnyAsync(m => m.TeamId == teamId && m.UserId == friendId))
+                return BadRequest("Ten gracz już jest w drużynie lub został zaproszony.");
 
-            var memberToKick = await _context.TeamMembers
-                .FirstOrDefaultAsync(m => m.TeamId == teamId && m.UserId == userIdToKick);
-
-            if (memberToKick == null)
+  
+            _context.Notifications.Add(new Notification
             {
-                return NotFound("Ten użytkownik nie jest w Twojej drużynie.");
-            }
-            _context.TeamMembers.Remove(memberToKick);
+                UserId = friendId,
+                Title = "Zaproszenie do drużyny",
+                Message = $"Kapitan {team.TeamName} zaprasza Cię do składu.",
+                NotificationType = "TeamInvite",
+                RelatedId = teamId,
+                RelatedType = "Team"
+            });
+
             await _context.SaveChangesAsync();
-
-            return Ok(new { Message = "Gracz został wyrzucony z drużyny." });
+            return Ok(new { Message = "Zaproszenie wysłane do znajomego." });
         }
     }
 }

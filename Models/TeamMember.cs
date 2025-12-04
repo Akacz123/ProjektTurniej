@@ -18,6 +18,8 @@ namespace EsportsTournament.API.Models
 
         [MaxLength(50)]
         public string Role { get; set; } = "member";
+        [MaxLength(20)]
+        public string Status { get; set; } = "Member"; 
 
         public DateTime JoinedAt { get; set; } = DateTime.UtcNow;
     }
