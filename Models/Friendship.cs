@@ -18,7 +18,7 @@ namespace EsportsTournament.API.Models
 
         [Required]
         [MaxLength(20)]
-        public string Status { get; set; } = "Pending";
+        public string Status { get; set; } = "Pending"; 
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }
