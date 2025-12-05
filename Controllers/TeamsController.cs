@@ -21,7 +21,11 @@ namespace EsportsTournament.API.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Team>>> GetTeams()
         {
-            return await _context.Teams.Include(t => t.Captain).ToListAsync();
+            return await _context.Teams
+                .Include(t => t.Captain)
+                .Include(t => t.TeamMembers)
+                .ThenInclude(tm => tm.User)
+                .ToListAsync();
         }
 
         [HttpGet("{id}")]
@@ -29,6 +33,8 @@ namespace EsportsTournament.API.Controllers
         {
             var team = await _context.Teams
                 .Include(t => t.Captain)
+                .Include(t => t.TeamMembers)
+                .ThenInclude(tm => tm.User)
                 .FirstOrDefaultAsync(t => t.TeamId == id);
 
             if (team == null) return NotFound();
@@ -64,6 +70,7 @@ namespace EsportsTournament.API.Controllers
 
             return CreatedAtAction(nameof(GetTeam), new { id = team.TeamId }, team);
         }
+
         [HttpPost("{teamId}/join")]
         [Authorize]
         public async Task<IActionResult> JoinTeam(int teamId)
@@ -84,7 +91,7 @@ namespace EsportsTournament.API.Controllers
                 TeamId = teamId,
                 UserId = userId,
                 Role = "Member",
-                Status = "Pending", 
+                Status = "Pending",
                 JoinedAt = DateTime.UtcNow
             };
             _context.TeamMembers.Add(newMember);
@@ -159,7 +166,6 @@ namespace EsportsTournament.API.Controllers
             if (await _context.TeamMembers.AnyAsync(m => m.TeamId == teamId && m.UserId == friendId))
                 return BadRequest("Ten gracz już jest w drużynie lub został zaproszony.");
 
-  
             _context.Notifications.Add(new Notification
             {
                 UserId = friendId,
