@@ -23,7 +23,6 @@ namespace EsportsTournament.API.Models
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-        
         public ICollection<TeamMember> TeamMembers { get; set; } = new List<TeamMember>();
     }
 }

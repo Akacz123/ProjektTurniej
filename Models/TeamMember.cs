@@ -1,26 +1,26 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
 namespace EsportsTournament.API.Models
 {
     public class TeamMember
     {
         [Key]
-        public int MemberId { get; set; }
+        public int Id { get; set; }
 
-        [ForeignKey("Team")]
         public int TeamId { get; set; }
+
+        [JsonIgnore]
         public Team? Team { get; set; }
 
-        [ForeignKey("User")]
         public int UserId { get; set; }
+
+        [ForeignKey("UserId")]
         public User? User { get; set; }
 
-        [MaxLength(50)]
-        public string Role { get; set; } = "member";
-        [MaxLength(20)]
-        public string Status { get; set; } = "Member"; 
-
+        public string Role { get; set; } = "Member";
+        public string Status { get; set; } = "Pending";
         public DateTime JoinedAt { get; set; } = DateTime.UtcNow;
     }
 }
