@@ -81,6 +81,29 @@ namespace EsportsTournament.API.Controllers
             return Ok(new { Message = "Jesteście teraz znajomymi!" });
         }
 
+        [HttpDelete("remove/{friendId}")]
+        public async Task<IActionResult> RemoveFriend(int friendId)
+        {
+            var myIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("sub")?.Value;
+            if (string.IsNullOrEmpty(myIdString)) return Unauthorized();
+            int myId = int.Parse(myIdString);
+
+            var friendship = await _context.Friendships
+                .FirstOrDefaultAsync(f =>
+                    (f.RequesterId == myId && f.AddresseeId == friendId) ||
+                    (f.RequesterId == friendId && f.AddresseeId == myId));
+
+            if (friendship == null)
+            {
+                return NotFound("Nie znaleziono takiej znajomości lub zaproszenia.");
+            }
+
+            _context.Friendships.Remove(friendship);
+            await _context.SaveChangesAsync();
+
+            return Ok(new { Message = "Użytkownik został usunięty ze znajomych." });
+        }
+
         [HttpGet]
         public async Task<ActionResult<IEnumerable<object>>> GetMyFriends()
         {
@@ -93,7 +116,7 @@ namespace EsportsTournament.API.Controllers
                 .ToListAsync();
 
             var friendList = friends.Select(f =>
-                f.RequesterId == myId ? f.Addressee : f.Requester 
+                f.RequesterId == myId ? f.Addressee : f.Requester
             ).Select(u => new
             {
                 u!.UserId,
@@ -104,6 +127,7 @@ namespace EsportsTournament.API.Controllers
 
             return Ok(friendList);
         }
+
         [HttpGet("requests")]
         public async Task<ActionResult<IEnumerable<object>>> GetPendingRequests()
         {
