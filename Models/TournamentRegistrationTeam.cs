@@ -6,19 +6,17 @@ namespace EsportsTournament.API.Models
     public class TournamentRegistrationTeam
     {
         [Key]
-        public int RegistrationId { get; set; }
+        public int Id { get; set; }
 
-        [ForeignKey("Tournament")]
         public int TournamentId { get; set; }
-        public Tournament? Tournament { get; set; }
 
-        [ForeignKey("Team")]
         public int TeamId { get; set; }
-        public Team? Team { get; set; }
+
+        [ForeignKey("TeamId")]
+        public Team Team { get; set; }
 
         public DateTime RegisteredAt { get; set; } = DateTime.UtcNow;
 
-        [MaxLength(20)]
-        public string Status { get; set; } = "confirmed";
+        public string Status { get; set; } = "Confirmed";
     }
 }
