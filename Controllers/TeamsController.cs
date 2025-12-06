@@ -83,8 +83,31 @@ namespace EsportsTournament.API.Controllers
             var team = await _context.Teams.FindAsync(teamId);
             if (team == null) return NotFound("Nie znaleziono drużyny.");
 
-            var alreadyMember = await _context.TeamMembers.AnyAsync(m => m.TeamId == teamId && m.UserId == userId);
-            if (alreadyMember) return BadRequest("Już należysz do tej drużyny (lub czekasz na akceptację).");
+            var existingMember = await _context.TeamMembers
+                .FirstOrDefaultAsync(m => m.TeamId == teamId && m.UserId == userId);
+
+            if (existingMember != null && existingMember.Status == "Pending")
+            {
+                existingMember.Status = "Member";
+                existingMember.JoinedAt = DateTime.UtcNow;
+
+                _context.Notifications.Add(new Notification
+                {
+                    UserId = team.CaptainId,
+                    Title = "Zaproszenie przyjęte",
+                    Message = $"Gracz {username} dołączył do Twojej drużyny.",
+                    NotificationType = "Info",
+                    RelatedId = teamId
+                });
+
+                await _context.SaveChangesAsync();
+                return Ok(new { Message = "Pomyślnie dołączyłeś do drużyny!" });
+            }
+
+            if (existingMember != null && existingMember.Status == "Member")
+            {
+                return BadRequest("Już należysz do tej drużyny.");
+            }
 
             var newMember = new TeamMember
             {
@@ -100,10 +123,11 @@ namespace EsportsTournament.API.Controllers
             {
                 UserId = team.CaptainId,
                 Title = "Nowe zgłoszenie do drużyny",
-                Message = $"Gracz {username} chce dołączyć do Twojej drużyny {team.TeamName}.",
+                Message = $"Gracz {username} chce dołączyć do Twojej drużyny '{team.TeamName}'.",
                 NotificationType = "TeamJoinRequest",
                 RelatedId = teamId,
-                RelatedType = "Team"
+                RelatedType = "Team",
+                RelatedUserId = userId
             };
             _context.Notifications.Add(notification);
 
@@ -166,11 +190,21 @@ namespace EsportsTournament.API.Controllers
             if (await _context.TeamMembers.AnyAsync(m => m.TeamId == teamId && m.UserId == friendId))
                 return BadRequest("Ten gracz już jest w drużynie lub został zaproszony.");
 
+            var newMember = new TeamMember
+            {
+                TeamId = teamId,
+                UserId = friendId,
+                Role = "Member",
+                Status = "Pending",
+                JoinedAt = DateTime.UtcNow
+            };
+            _context.TeamMembers.Add(newMember);
+
             _context.Notifications.Add(new Notification
             {
                 UserId = friendId,
                 Title = "Zaproszenie do drużyny",
-                Message = $"Kapitan {team.TeamName} zaprasza Cię do składu.",
+                Message = $"Kapitan drużyny '{team.TeamName}' zaprasza Cię do składu.",
                 NotificationType = "TeamInvite",
                 RelatedId = teamId,
                 RelatedType = "Team"
@@ -178,6 +212,25 @@ namespace EsportsTournament.API.Controllers
 
             await _context.SaveChangesAsync();
             return Ok(new { Message = "Zaproszenie wysłane do znajomego." });
+        }
+
+        [HttpPost("{teamId}/reject")]
+        [Authorize]
+        public async Task<IActionResult> RejectInvite(int teamId)
+        {
+            var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("sub")?.Value;
+            if (string.IsNullOrEmpty(userIdString)) return Unauthorized();
+            int userId = int.Parse(userIdString);
+
+            var member = await _context.TeamMembers
+                .FirstOrDefaultAsync(m => m.TeamId == teamId && m.UserId == userId && m.Status == "Pending");
+
+            if (member == null) return NotFound("Nie znaleziono zaproszenia do odrzucenia.");
+
+            _context.TeamMembers.Remove(member);
+            await _context.SaveChangesAsync();
+
+            return Ok(new { Message = "Zaproszenie odrzucone." });
         }
     }
 }

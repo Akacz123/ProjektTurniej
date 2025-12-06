@@ -14,7 +14,7 @@ namespace EsportsTournament.API.Models
 
         [Required]
         [MaxLength(30)]
-        public string NotificationType { get; set; } = string.Empty; 
+        public string NotificationType { get; set; } = string.Empty;
 
         [Required]
         [MaxLength(150)]
@@ -29,6 +29,8 @@ namespace EsportsTournament.API.Models
 
         [MaxLength(20)]
         public string? RelatedType { get; set; }
+
+        public int? RelatedUserId { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }
