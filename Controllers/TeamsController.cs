@@ -241,29 +241,45 @@ namespace EsportsTournament.API.Controllers
             if (string.IsNullOrEmpty(userIdString)) return Unauthorized();
             int userId = int.Parse(userIdString);
 
-            var member = await _context.TeamMembers
-                .FirstOrDefaultAsync(m => m.TeamId == teamId && m.UserId == userId);
+            var team = await _context.Teams
+                .Include(t => t.TeamMembers)
+                .FirstOrDefaultAsync(t => t.TeamId == teamId);
 
+            if (team == null) return NotFound("Nie znaleziono drużyny.");
+
+            var member = team.TeamMembers.FirstOrDefault(m => m.UserId == userId);
             if (member == null) return NotFound("Nie należysz do tej drużyny.");
 
             if (member.Role == "Captain")
-                return BadRequest("Kapitan nie może opuścić drużyny. Musisz ją usunąć lub przekazać rolę.");
+            {
+                if (team.TeamMembers.Count > 1)
+                {
+                    return BadRequest("Kapitan nie może opuścić drużyny, gdy są w niej inni gracze. Wyrzuć ich najpierw lub przekaż rolę.");
+                }
+
+                var relatedNotifications = await _context.Notifications
+                    .Where(n => n.RelatedType == "Team" && n.RelatedId == teamId)
+                    .ToListAsync();
+                _context.Notifications.RemoveRange(relatedNotifications);
+
+                _context.TeamMembers.RemoveRange(team.TeamMembers);
+                _context.Teams.Remove(team);
+
+                await _context.SaveChangesAsync();
+                return Ok(new { Message = "Drużyna została rozwiązana, ponieważ byłeś jedynym członkiem." });
+            }
 
             _context.TeamMembers.Remove(member);
 
-            var team = await _context.Teams.FindAsync(teamId);
-            if (team != null)
+            var username = User.FindFirst(ClaimTypes.Name)?.Value ?? "Użytkownik";
+            _context.Notifications.Add(new Notification
             {
-                var username = User.FindFirst(ClaimTypes.Name)?.Value ?? "Użytkownik";
-                _context.Notifications.Add(new Notification
-                {
-                    UserId = team.CaptainId,
-                    Title = "Gracz opuścił drużynę",
-                    Message = $"Gracz {username} opuścił Twoją drużynę {team.TeamName}.",
-                    NotificationType = "Info",
-                    RelatedId = teamId
-                });
-            }
+                UserId = team.CaptainId,
+                Title = "Gracz opuścił drużynę",
+                Message = $"Gracz {username} opuścił Twoją drużynę {team.TeamName}.",
+                NotificationType = "Info",
+                RelatedId = teamId
+            });
 
             await _context.SaveChangesAsync();
             return Ok(new { Message = "Opuściłeś drużynę." });
