@@ -71,6 +71,12 @@ namespace EsportsTournament.API.Controllers
             return CreatedAtAction(nameof(GetTeam), new { id = team.TeamId }, team);
         }
 
+        [HttpGet("avatars")]
+        public async Task<ActionResult<IEnumerable<TeamAvatar>>> GetTeamAvatars()
+        {
+            return await _context.TeamAvatars.ToListAsync();
+        }
+
         [HttpPost("{teamId}/join")]
         [Authorize]
         public async Task<IActionResult> JoinTeam(int teamId)

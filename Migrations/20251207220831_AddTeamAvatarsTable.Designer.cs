@@ -3,6 +3,7 @@ using System;
 using EsportsTournament.API.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace EsportsTournament.API.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251207220831_AddTeamAvatarsTable")]
+    partial class AddTeamAvatarsTable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -324,20 +327,23 @@ namespace EsportsTournament.API.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Description")
-                        .HasColumnType("text");
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
 
-                    b.Property<string>("LogoUrl")
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)");
+                    b.Property<int?>("TeamAvatarId")
+                        .HasColumnType("integer");
 
                     b.Property<string>("TeamName")
                         .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
 
                     b.HasKey("TeamId");
 
                     b.HasIndex("CaptainId");
+
+                    b.HasIndex("TeamAvatarId");
 
                     b.ToTable("Teams");
                 });
@@ -765,7 +771,13 @@ namespace EsportsTournament.API.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("EsportsTournament.API.Models.TeamAvatar", "TeamAvatar")
+                        .WithMany()
+                        .HasForeignKey("TeamAvatarId");
+
                     b.Navigation("Captain");
+
+                    b.Navigation("TeamAvatar");
                 });
 
             modelBuilder.Entity("EsportsTournament.API.Models.TeamMember", b =>
