@@ -232,5 +232,109 @@ namespace EsportsTournament.API.Controllers
 
             return Ok(new { Message = "Zaproszenie odrzucone." });
         }
+
+        [HttpDelete("{teamId}/leave")]
+        [Authorize]
+        public async Task<IActionResult> LeaveTeam(int teamId)
+        {
+            var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("sub")?.Value;
+            if (string.IsNullOrEmpty(userIdString)) return Unauthorized();
+            int userId = int.Parse(userIdString);
+
+            var member = await _context.TeamMembers
+                .FirstOrDefaultAsync(m => m.TeamId == teamId && m.UserId == userId);
+
+            if (member == null) return NotFound("Nie należysz do tej drużyny.");
+
+            if (member.Role == "Captain")
+                return BadRequest("Kapitan nie może opuścić drużyny. Musisz ją usunąć lub przekazać rolę.");
+
+            _context.TeamMembers.Remove(member);
+
+            var team = await _context.Teams.FindAsync(teamId);
+            if (team != null)
+            {
+                var username = User.FindFirst(ClaimTypes.Name)?.Value ?? "Użytkownik";
+                _context.Notifications.Add(new Notification
+                {
+                    UserId = team.CaptainId,
+                    Title = "Gracz opuścił drużynę",
+                    Message = $"Gracz {username} opuścił Twoją drużynę {team.TeamName}.",
+                    NotificationType = "Info",
+                    RelatedId = teamId
+                });
+            }
+
+            await _context.SaveChangesAsync();
+            return Ok(new { Message = "Opuściłeś drużynę." });
+        }
+
+        [HttpDelete("{teamId}/kick/{userIdToKick}")]
+        [Authorize]
+        public async Task<IActionResult> KickMember(int teamId, int userIdToKick)
+        {
+            var captainIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("sub")?.Value;
+            if (string.IsNullOrEmpty(captainIdString)) return Unauthorized();
+            int captainId = int.Parse(captainIdString);
+
+            var team = await _context.Teams.FindAsync(teamId);
+            if (team == null) return NotFound("Nie ma takiej drużyny.");
+
+            if (team.CaptainId != captainId) return StatusCode(403, "Tylko kapitan może wyrzucać graczy.");
+            if (userIdToKick == captainId) return BadRequest("Nie możesz wyrzucić samego siebie.");
+
+            var member = await _context.TeamMembers
+                .FirstOrDefaultAsync(m => m.TeamId == teamId && m.UserId == userIdToKick);
+
+            if (member == null) return NotFound("Ten użytkownik nie jest w Twojej drużynie.");
+
+            _context.TeamMembers.Remove(member);
+
+            _context.Notifications.Add(new Notification
+            {
+                UserId = userIdToKick,
+                Title = "Zostałeś wyrzucony",
+                Message = $"Zostałeś usunięty z drużyny {team.TeamName} przez kapitana.",
+                NotificationType = "Info",
+                RelatedId = teamId
+            });
+
+            await _context.SaveChangesAsync();
+            return Ok(new { Message = "Gracz został wyrzucony z drużyny." });
+        }
+
+        [HttpDelete("{teamId}")]
+        [Authorize]
+        public async Task<IActionResult> DeleteTeam(int teamId)
+        {
+            var captainIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("sub")?.Value;
+            if (string.IsNullOrEmpty(captainIdString)) return Unauthorized();
+            int captainId = int.Parse(captainIdString);
+
+            var team = await _context.Teams
+                .Include(t => t.TeamMembers)
+                .FirstOrDefaultAsync(t => t.TeamId == teamId);
+
+            if (team == null) return NotFound("Nie znaleziono drużyny.");
+            if (team.CaptainId != captainId) return StatusCode(403, "Tylko kapitan może usunąć drużynę.");
+
+            var membersCount = team.TeamMembers.Count;
+
+            if (membersCount > 1)
+            {
+                return BadRequest("Nie możesz usunąć drużyny, dopóki są w niej inni gracze.");
+            }
+
+            var relatedNotifications = await _context.Notifications
+                .Where(n => n.RelatedType == "Team" && n.RelatedId == teamId)
+                .ToListAsync();
+            _context.Notifications.RemoveRange(relatedNotifications);
+
+            _context.TeamMembers.RemoveRange(team.TeamMembers);
+            _context.Teams.Remove(team);
+
+            await _context.SaveChangesAsync();
+            return Ok(new { Message = "Drużyna została usunięta." });
+        }
     }
 }
