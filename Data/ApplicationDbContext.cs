@@ -26,6 +26,7 @@ namespace EsportsTournament.API.Data
         public DbSet<TeamStatistic> TeamStatistics { get; set; }
         public DbSet<Friendship> Friendships { get; set; }
         public DbSet<PresetAvatar> PresetAvatars { get; set; }
+        public DbSet<TournamentRegistration> TournamentRegistrations { get; set; }
 
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
