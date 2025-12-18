@@ -22,6 +22,19 @@ namespace EsportsTournament.API.Controllers
         [HttpPost("register/{tournamentId}/{teamId}")]
         public async Task<IActionResult> RegisterTeam(int tournamentId, int teamId)
         {
+            var memberCount = await _context.TeamMembers
+                .CountAsync(m => m.TeamId == teamId && m.Status == "Member"); 
+            var tournamentWithGame = await _context.Tournaments
+                .Include(t => t.Game)
+                .FirstOrDefaultAsync(t => t.TournamentId == tournamentId);
+
+            if (tournamentWithGame?.Game != null)
+            {
+                if (memberCount < 1)
+                {
+                    return BadRequest("Twoja drużyna musi mieć członków, aby dołączyć!");
+                }
+            }
             var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("sub")?.Value;
             if (string.IsNullOrEmpty(userIdString) || !int.TryParse(userIdString, out int userId))
             {
