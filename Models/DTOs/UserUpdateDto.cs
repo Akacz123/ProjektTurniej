@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace EsportsTournament.API.Models // lub .DTOs
+namespace EsportsTournament.API.Models.DTOs
 {
     public class UserUpdateDto
     {
