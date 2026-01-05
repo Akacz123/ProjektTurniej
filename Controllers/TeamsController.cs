@@ -283,7 +283,7 @@ namespace EsportsTournament.API.Controllers
             {
                 UserId = team.CaptainId,
                 Title = "Gracz opuścił drużynę",
-                Message = $"Gracz {leaverName} opuścił Twoją drużynę {team.TeamName}.", // Use Username and TeamName
+                Message = $"Gracz {leaverName} opuścił Twoją drużynę {team.TeamName}.", 
                 NotificationType = "Info",
                 RelatedId = teamId,
                 RelatedType = "Team"
@@ -292,6 +292,14 @@ namespace EsportsTournament.API.Controllers
             await _context.SaveChangesAsync();
             return Ok(new { Message = "Opuściłeś drużynę." });
         }
+
+        // DTO do zmiany loga (dodaj to na dole pliku lub w osobnej klasie)
+        public class UpdateTeamLogoDto
+        {
+            public string LogoUrl { get; set; }
+        }
+
+
 
         [HttpDelete("{teamId}/kick/{userIdToKick}")]
         [Authorize]
@@ -361,6 +369,29 @@ namespace EsportsTournament.API.Controllers
 
             await _context.SaveChangesAsync();
             return Ok(new { Message = "Drużyna została usunięta." });
+        }
+
+        [HttpPut("{teamId}/logo")]
+        [Authorize]
+        public async Task<IActionResult> UpdateTeamLogo(int teamId, [FromBody] UpdateTeamLogoDto dto)
+        {
+
+            var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("sub")?.Value;
+            if (string.IsNullOrEmpty(userIdString)) return Unauthorized();
+            int userId = int.Parse(userIdString);
+
+            var team = await _context.Teams.FindAsync(teamId);
+            if (team == null) return NotFound("Nie znaleziono drużyny.");
+
+            if (team.CaptainId != userId)
+                return StatusCode(403, "Tylko kapitan może zmienić logo drużyny.");
+
+
+            team.LogoUrl = dto.LogoUrl;
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new { Message = "Logo drużyny zaktualizowane.", NewLogoUrl = team.LogoUrl });
         }
     }
 }
