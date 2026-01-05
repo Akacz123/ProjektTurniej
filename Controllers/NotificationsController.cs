@@ -87,5 +87,26 @@ namespace EsportsTournament.API.Controllers
 
             return Ok(new { Message = "Powiadomienie usunięte." });
         }
-    }
+    
+        [HttpDelete("clear")]
+            public async Task<IActionResult> ClearAllNotifications()
+            {
+                var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("sub")?.Value;
+                int userId = int.Parse(userIdString!);
+
+                var notifications = await _context.Notifications
+                    .Where(n => n.UserId == userId)
+                    .ToListAsync();
+
+                if (!notifications.Any())
+                {
+                    return Ok(new { Message = "Brak powiadomień do usunięcia." });
+                }
+
+                _context.Notifications.RemoveRange(notifications);
+                await _context.SaveChangesAsync();
+
+                return Ok(new { Message = "Wszystkie powiadomienia zostały usunięte." });
+            }
+        }
 }
