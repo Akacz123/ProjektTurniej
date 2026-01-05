@@ -69,12 +69,17 @@ namespace EsportsTournament.API.Controllers
             if (friendship == null) return NotFound("Nie znaleziono takiego zaproszenia.");
             friendship.Status = "Accepted";
 
+            var acceptingUser = await _context.Users.FindAsync(myId);
+            string acceptingUserName = acceptingUser?.Username ?? "Unknown User";
+
             _context.Notifications.Add(new Notification
             {
                 UserId = requesterId,
                 Title = "Zaproszenie przyjęte",
-                Message = $"Użytkownik o ID {myId} zaakceptował Twoje zaproszenie.",
-                NotificationType = "FriendRequestAccepted"
+                Message = $"Użytkownik {acceptingUserName} zaakceptował Twoje zaproszenie.", // Use Name, not ID
+                NotificationType = "FriendRequestAccepted",
+                RelatedId = myId,
+                RelatedType = "User"
             });
 
             await _context.SaveChangesAsync();

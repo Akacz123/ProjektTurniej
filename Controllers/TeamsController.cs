@@ -186,7 +186,7 @@ namespace EsportsTournament.API.Controllers
 
             var areFriends = await _context.Friendships
                 .AnyAsync(f => (f.RequesterId == captainId && f.AddresseeId == friendId && f.Status == "Accepted") ||
-                               (f.RequesterId == friendId && f.AddresseeId == captainId && f.Status == "Accepted"));
+                                (f.RequesterId == friendId && f.AddresseeId == captainId && f.Status == "Accepted"));
 
             if (!areFriends)
             {
@@ -210,7 +210,7 @@ namespace EsportsTournament.API.Controllers
             {
                 UserId = friendId,
                 Title = "Zaproszenie do drużyny",
-                Message = $"Kapitan drużyny '{team.TeamName}' zaprasza Cię do składu.",
+                Message = $"Kapitan drużyny '{team.TeamName}' zaprasza Cię do składu.", // Use TeamName
                 NotificationType = "TeamInvite",
                 RelatedId = teamId,
                 RelatedType = "Team"
@@ -267,24 +267,26 @@ namespace EsportsTournament.API.Controllers
                     .Where(n => n.RelatedType == "Team" && n.RelatedId == teamId)
                     .ToListAsync();
                 _context.Notifications.RemoveRange(relatedNotifications);
-
                 _context.TeamMembers.RemoveRange(team.TeamMembers);
                 _context.Teams.Remove(team);
-
                 await _context.SaveChangesAsync();
                 return Ok(new { Message = "Drużyna została rozwiązana, ponieważ byłeś jedynym członkiem." });
             }
 
             _context.TeamMembers.Remove(member);
 
-            var username = User.FindFirst(ClaimTypes.Name)?.Value ?? "Użytkownik";
+
+            var leaver = await _context.Users.FindAsync(userId);
+            string leaverName = leaver?.Username ?? "Użytkownik";
+
             _context.Notifications.Add(new Notification
             {
                 UserId = team.CaptainId,
                 Title = "Gracz opuścił drużynę",
-                Message = $"Gracz {username} opuścił Twoją drużynę {team.TeamName}.",
+                Message = $"Gracz {leaverName} opuścił Twoją drużynę {team.TeamName}.", // Use Username and TeamName
                 NotificationType = "Info",
-                RelatedId = teamId
+                RelatedId = teamId,
+                RelatedType = "Team"
             });
 
             await _context.SaveChangesAsync();
@@ -316,10 +318,12 @@ namespace EsportsTournament.API.Controllers
             {
                 UserId = userIdToKick,
                 Title = "Zostałeś wyrzucony",
-                Message = $"Zostałeś usunięty z drużyny {team.TeamName} przez kapitana.",
+                Message = $"Zostałeś usunięty z drużyny {team.TeamName} przez kapitana.", // Use TeamName
                 NotificationType = "Info",
-                RelatedId = teamId
+                RelatedId = teamId,
+                RelatedType = "Team"
             });
+
 
             await _context.SaveChangesAsync();
             return Ok(new { Message = "Gracz został wyrzucony z drużyny." });

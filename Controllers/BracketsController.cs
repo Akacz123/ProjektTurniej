@@ -17,7 +17,6 @@ namespace EsportsTournament.API.Controllers
         {
             _context = context;
         }
-
         [HttpPost("generate/{tournamentId}")]
         [Authorize(Roles = "admin,organizer")]
         public async Task<IActionResult> GenerateBracket(int tournamentId)
@@ -49,8 +48,9 @@ namespace EsportsTournament.API.Controllers
             }
 
             int count = participantIds.Count;
+
             if (count < 2 || (count & (count - 1)) != 0)
-                return BadRequest($"Liczba uczestników ({count}) musi być potęgą dwójki (2, 4, 8, 16, 32...).");
+                return BadRequest($"Liczba uczestników ({count}) musi być potęgą dwójki (2, 4, 8, 16, 32...). Usuń nadmiarowe drużyny lub znajdź brakujące.");
 
             var rng = new Random();
             var shuffled = participantIds.OrderBy(x => rng.Next()).ToList();
@@ -108,7 +108,46 @@ namespace EsportsTournament.API.Controllers
                 .ThenBy(m => m.MatchNumber)
                 .ToListAsync();
 
-            return Ok(matches);
+            var teamIds = matches.Where(m => m.Participant1Type == "team")
+                                 .SelectMany(m => new[] { m.Participant1Id, m.Participant2Id })
+                                 .OfType<int>().Distinct().ToList();
+
+            var userIds = matches.Where(m => m.Participant1Type == "user")
+                                 .SelectMany(m => new[] { m.Participant1Id, m.Participant2Id })
+                                 .OfType<int>().Distinct().ToList();
+
+            var teams = await _context.Teams
+                .Where(t => teamIds.Contains(t.TeamId))
+                .ToDictionaryAsync(t => t.TeamId, t => t.TeamName);
+
+            var users = await _context.Users
+                .Where(u => userIds.Contains(u.UserId))
+                .ToDictionaryAsync(u => u.UserId, u => u.Username);
+
+            var matchDtos = matches.Select(m => new MatchDto
+            {
+                MatchId = m.MatchId,
+                MatchNumber = m.MatchNumber,
+                RoundNumber = m.RoundNumber,
+                MatchStatus = m.MatchStatus,
+                Participant1Id = m.Participant1Id,
+                Participant2Id = m.Participant2Id,
+                WinnerId = m.WinnerId,
+
+                Participant1Name = m.Participant1Id.HasValue
+                    ? (m.Participant1Type == "team"
+                        ? (teams.ContainsKey(m.Participant1Id.Value) ? teams[m.Participant1Id.Value] : "Team " + m.Participant1Id)
+                        : (users.ContainsKey(m.Participant1Id.Value) ? users[m.Participant1Id.Value] : "User " + m.Participant1Id))
+                    : "TBA", 
+
+                Participant2Name = m.Participant2Id.HasValue
+                    ? (m.Participant2Type == "team"
+                        ? (teams.ContainsKey(m.Participant2Id.Value) ? teams[m.Participant2Id.Value] : "Team " + m.Participant2Id)
+                        : (users.ContainsKey(m.Participant2Id.Value) ? users[m.Participant2Id.Value] : "User " + m.Participant2Id))
+                    : "TBA"
+            });
+
+            return Ok(matchDtos);
         }
 
         [HttpPost("report-result")]
@@ -201,6 +240,7 @@ namespace EsportsTournament.API.Controllers
             return Ok(new { Message = "Wynik zaakceptowany! Zwycięzca przechodzi dalej." });
         }
 
+
         [HttpPost("dispute-result/{resultId}")]
         [Authorize]
         public async Task<IActionResult> DisputeResult(int resultId)
@@ -245,6 +285,7 @@ namespace EsportsTournament.API.Controllers
 
             return Ok(new { Message = "Spór rozwiązany. Wynik zaktualizowany." });
         }
+
 
         private async Task FinalizeMatchAndAdvance(Match match, int scoreA, int scoreB)
         {
@@ -300,5 +341,21 @@ namespace EsportsTournament.API.Controllers
         public int ScoreA { get; set; }
         public int ScoreB { get; set; }
         public string? ScreenshotUrl { get; set; }
+    }
+
+    public class MatchDto
+    {
+        public int MatchId { get; set; }
+        public int MatchNumber { get; set; }
+        public int RoundNumber { get; set; }
+        public string MatchStatus { get; set; }
+
+        public int? Participant1Id { get; set; }
+        public string? Participant1Name { get; set; } // Tu trafi nazwa
+
+        public int? Participant2Id { get; set; }
+        public string? Participant2Name { get; set; } // Tu trafi nazwa
+
+        public int? WinnerId { get; set; }
     }
 }
