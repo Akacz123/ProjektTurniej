@@ -84,7 +84,9 @@ namespace EsportsTournament.API.Controllers
             var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("sub")?.Value;
             if (string.IsNullOrEmpty(userIdString)) return Unauthorized();
             int userId = int.Parse(userIdString);
-            string username = User.FindFirst("username")?.Value ?? "Ktoś";
+
+            var user = await _context.Users.FindAsync(userId);
+            string username = user?.Username ?? "Nieznany gracz";
 
             var team = await _context.Teams.FindAsync(teamId);
             if (team == null) return NotFound("Nie znaleziono drużyny.");
@@ -186,7 +188,7 @@ namespace EsportsTournament.API.Controllers
 
             var areFriends = await _context.Friendships
                 .AnyAsync(f => (f.RequesterId == captainId && f.AddresseeId == friendId && f.Status == "Accepted") ||
-                                (f.RequesterId == friendId && f.AddresseeId == captainId && f.Status == "Accepted"));
+                               (f.RequesterId == friendId && f.AddresseeId == captainId && f.Status == "Accepted"));
 
             if (!areFriends)
             {
@@ -210,7 +212,7 @@ namespace EsportsTournament.API.Controllers
             {
                 UserId = friendId,
                 Title = "Zaproszenie do drużyny",
-                Message = $"Kapitan drużyny '{team.TeamName}' zaprasza Cię do składu.", // Use TeamName
+                Message = $"Kapitan drużyny '{team.TeamName}' zaprasza Cię do składu.",
                 NotificationType = "TeamInvite",
                 RelatedId = teamId,
                 RelatedType = "Team"
@@ -247,6 +249,9 @@ namespace EsportsTournament.API.Controllers
             if (string.IsNullOrEmpty(userIdString)) return Unauthorized();
             int userId = int.Parse(userIdString);
 
+            var leaverUser = await _context.Users.FindAsync(userId);
+            string leaverName = leaverUser?.Username ?? "Nieznany gracz";
+
             var team = await _context.Teams
                 .Include(t => t.TeamMembers)
                 .FirstOrDefaultAsync(t => t.TeamId == teamId);
@@ -275,15 +280,11 @@ namespace EsportsTournament.API.Controllers
 
             _context.TeamMembers.Remove(member);
 
-
-            var leaver = await _context.Users.FindAsync(userId);
-            string leaverName = leaver?.Username ?? "Użytkownik";
-
             _context.Notifications.Add(new Notification
             {
                 UserId = team.CaptainId,
                 Title = "Gracz opuścił drużynę",
-                Message = $"Gracz {leaverName} opuścił Twoją drużynę {team.TeamName}.", 
+                Message = $"Gracz {leaverName} opuścił Twoją drużynę {team.TeamName}.",
                 NotificationType = "Info",
                 RelatedId = teamId,
                 RelatedType = "Team"
@@ -293,13 +294,10 @@ namespace EsportsTournament.API.Controllers
             return Ok(new { Message = "Opuściłeś drużynę." });
         }
 
-        // DTO do zmiany loga (dodaj to na dole pliku lub w osobnej klasie)
         public class UpdateTeamLogoDto
         {
             public string LogoUrl { get; set; }
         }
-
-
 
         [HttpDelete("{teamId}/kick/{userIdToKick}")]
         [Authorize]
@@ -326,12 +324,11 @@ namespace EsportsTournament.API.Controllers
             {
                 UserId = userIdToKick,
                 Title = "Zostałeś wyrzucony",
-                Message = $"Zostałeś usunięty z drużyny {team.TeamName} przez kapitana.", // Use TeamName
+                Message = $"Zostałeś usunięty z drużyny {team.TeamName} przez kapitana.",
                 NotificationType = "Info",
                 RelatedId = teamId,
                 RelatedType = "Team"
             });
-
 
             await _context.SaveChangesAsync();
             return Ok(new { Message = "Gracz został wyrzucony z drużyny." });
@@ -375,7 +372,6 @@ namespace EsportsTournament.API.Controllers
         [Authorize]
         public async Task<IActionResult> UpdateTeamLogo(int teamId, [FromBody] UpdateTeamLogoDto dto)
         {
-
             var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("sub")?.Value;
             if (string.IsNullOrEmpty(userIdString)) return Unauthorized();
             int userId = int.Parse(userIdString);
@@ -385,7 +381,6 @@ namespace EsportsTournament.API.Controllers
 
             if (team.CaptainId != userId)
                 return StatusCode(403, "Tylko kapitan może zmienić logo drużyny.");
-
 
             team.LogoUrl = dto.LogoUrl;
 

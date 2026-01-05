@@ -69,5 +69,23 @@ namespace EsportsTournament.API.Controllers
             await _context.SaveChangesAsync();
             return Ok(new { Message = "Wszystkie powiadomienia oznaczone jako przeczytane." });
         }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteNotification(int id)
+        {
+            var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("sub")?.Value;
+            int userId = int.Parse(userIdString!);
+
+            var notification = await _context.Notifications.FindAsync(id);
+
+            if (notification == null) return NotFound();
+
+            if (notification.UserId != userId) return Unauthorized();
+
+            _context.Notifications.Remove(notification);
+            await _context.SaveChangesAsync();
+
+            return Ok(new { Message = "Powiadomienie usunięte." });
+        }
     }
 }

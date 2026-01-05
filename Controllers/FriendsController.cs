@@ -28,6 +28,9 @@ namespace EsportsTournament.API.Controllers
 
             if (myId == targetUserId) return BadRequest("Nie możesz zaprosić samego siebie.");
 
+            var senderUser = await _context.Users.FindAsync(myId);
+            string senderName = senderUser?.Username ?? "Nieznany użytkownik";
+
             var existing = await _context.Friendships
                 .AnyAsync(f => (f.RequesterId == myId && f.AddresseeId == targetUserId) ||
                                (f.RequesterId == targetUserId && f.AddresseeId == myId));
@@ -42,12 +45,11 @@ namespace EsportsTournament.API.Controllers
             };
             _context.Friendships.Add(friendship);
 
-            var senderName = User.FindFirst(ClaimTypes.Name)?.Value ?? "Ktoś";
             var notification = new Notification
             {
                 UserId = targetUserId,
                 Title = "Nowe zaproszenie do znajomych",
-                Message = $"Użytkownik {senderName} (ID: {myId}) chce dodać Cię do znajomych.",
+                Message = $"Użytkownik {senderName} chce dodać Cię do znajomych.",
                 NotificationType = "FriendRequest",
                 RelatedType = "User",
                 RelatedId = myId
@@ -76,7 +78,7 @@ namespace EsportsTournament.API.Controllers
             {
                 UserId = requesterId,
                 Title = "Zaproszenie przyjęte",
-                Message = $"Użytkownik {acceptingUserName} zaakceptował Twoje zaproszenie.", // Use Name, not ID
+                Message = $"Użytkownik {acceptingUserName} zaakceptował Twoje zaproszenie.",
                 NotificationType = "FriendRequestAccepted",
                 RelatedId = myId,
                 RelatedType = "User"
