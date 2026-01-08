@@ -1,87 +1,78 @@
-﻿using EsportsTournament.API.Data;
-using EsportsTournament.API.Models;
-using EsportsTournament.API.Models.DTOs;
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using EsportsTournament.API.Data;
+using EsportsTournament.API.Models;
+using System.Security.Claims;
 
 namespace EsportsTournament.API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class UsersController : ControllerBase
+    public class UserController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
 
-        public UsersController(ApplicationDbContext context)
+        public UserController(ApplicationDbContext context)
         {
             _context = context;
         }
-        [HttpGet]
-        public async Task<ActionResult<IEnumerable<User>>> GetUsers()
-        {
-            return await _context.Users.ToListAsync();
-        }
 
-        [HttpPut("{id}")]
+        [HttpGet("profile")]
         [Authorize]
-        public async Task<IActionResult> UpdateUser(int id, UserUpdateDto request)
+        public async Task<ActionResult<object>> GetMyProfile()
         {
-            var userIdString = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
-                            ?? User.FindFirst("sub")?.Value;
-
+            var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("sub")?.Value;
             if (string.IsNullOrEmpty(userIdString)) return Unauthorized();
+            int userId = int.Parse(userIdString);
 
-            int tokenUserId = int.Parse(userIdString);
-
-            if (tokenUserId != id)
-            {
-                return StatusCode(403, "Nie możesz edytować cudzego profilu!");
-            }
-
-            var user = await _context.Users.FindAsync(id);
-            if (user == null) return NotFound("Użytkownik nie istnieje.");
-
-            if (request.Username != user.Username)
-            {
-                if (await _context.Users.AnyAsync(u => u.Username == request.Username))
-                {
-                    return BadRequest("Ta nazwa użytkownika jest już zajęta.");
-                }
-            }
-            if (!string.IsNullOrEmpty(request.Email) && request.Email != user.Email)
-            {
-                if (await _context.Users.AnyAsync(u => u.Email == request.Email))
-                {
-                    return BadRequest("Ten email jest już zajęty.");
-                }
-            }
-
-            user.Username = request.Username;
-            user.Email = request.Email;
-            user.AvatarUrl = request.AvatarUrl;
-
-
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!UserExists(id)) return NotFound();
-                else throw;
-            }
+            var user = await _context.Users.FindAsync(userId);
+            if (user == null) return NotFound();
 
             return Ok(new
             {
-                Message = "Profil zaktualizowany!",
-                User = new { user.UserId, user.Username, user.Email, user.AvatarUrl }
+                user.UserId,
+                user.Username,
+                user.Email,
+                user.FirstName,
+                user.LastName,
+                user.AvatarUrl,
+                user.Role,
+                user.CreatedAt
             });
         }
 
-        private bool UserExists(int id)
+        [HttpPut("profile")]
+        [Authorize]
+        public async Task<IActionResult> UpdateProfile([FromBody] UserUpdateDto dto)
         {
-            return _context.Users.Any(e => e.UserId == id);
+            var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("sub")?.Value;
+            if (string.IsNullOrEmpty(userIdString)) return Unauthorized();
+            int userId = int.Parse(userIdString);
+
+            var user = await _context.Users.FindAsync(userId);
+            if (user == null) return NotFound();
+
+            if (!string.IsNullOrEmpty(dto.FirstName)) user.FirstName = dto.FirstName;
+            if (!string.IsNullOrEmpty(dto.LastName)) user.LastName = dto.LastName;
+
+            if (dto.AvatarUrl != null)
+            {
+                user.AvatarUrl = dto.AvatarUrl;
+            }
+
+            user.UpdatedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new { Message = "Profil zaktualizowany pomyślnie.", AvatarUrl = user.AvatarUrl });
         }
+    }
+
+    public class UserUpdateDto
+    {
+        public string? FirstName { get; set; }
+        public string? LastName { get; set; }
+        public string? AvatarUrl { get; set; }
     }
 }
