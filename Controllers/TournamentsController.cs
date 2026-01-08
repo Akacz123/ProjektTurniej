@@ -26,12 +26,35 @@ namespace EsportsTournament.API.Controllers
                 .Include(t => t.Organizer)
                 .AsQueryable();
 
+            var now = DateTime.UtcNow;
+
             if (!string.IsNullOrEmpty(status))
             {
-                query = query.Where(t => t.Status == status);
-            }
+                switch (status.ToLower())
+                {
+                    case "upcoming": 
+                        query = query.Where(t => t.StartDate > now)
+                                     .OrderBy(t => t.StartDate);
+                        break;
 
-            query = query.OrderBy(t => t.StartDate);
+                    case "ongoing":
+                        query = query.Where(t => t.StartDate <= now && t.EndDate > now);
+                        break;
+
+                    case "finished":
+                        query = query.Where(t => t.EndDate <= now)
+                                     .OrderByDescending(t => t.EndDate); 
+                        break;
+
+                    default:
+                        query = query.Where(t => t.Status == status);
+                        break;
+                }
+            }
+            else
+            {
+                query = query.OrderBy(t => t.StartDate);
+            }
 
             return await query.ToListAsync();
         }
