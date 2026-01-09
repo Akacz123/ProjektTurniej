@@ -34,17 +34,31 @@ namespace EsportsTournament.API.Controllers
                 switch (status.ToLower())
                 {
                     case "upcoming":
-                        query = query.Where(t => t.StartDate > now).OrderBy(t => t.StartDate);
+                        query = query.Where(t => t.StartDate > now)
+                                     .OrderBy(t => t.StartDate);
                         break;
+
                     case "ongoing":
-                        query = query.Where(t => t.StartDate <= now && t.EndDate > now && t.Status.ToLower() != "finished" && t.Status.ToLower() != "completed");
+                        query = query.Where(t =>
+                            t.StartDate <= now &&
+                            t.EndDate > now &&
+                            (t.Status == null || (t.Status.ToLower() != "finished" && t.Status.ToLower() != "completed" && t.Status.ToLower() != "ended"))
+                        );
                         break;
+
                     case "finished":
-                        query = query.Where(t => t.EndDate <= now || t.Status.ToLower() == "finished" || t.Status.ToLower() == "completed")
-                                     .OrderByDescending(t => t.EndDate);
+                        query = query.Where(t =>
+                            t.EndDate <= now ||
+                            (t.Status != null && ( 
+                                t.Status.ToLower() == "finished" ||
+                                t.Status.ToLower() == "completed" ||
+                                t.Status.ToLower() == "ended"
+                            ))
+                        ).OrderByDescending(t => t.EndDate);
                         break;
+
                     default:
-                        query = query.Where(t => t.Status.ToLower() == status.ToLower());
+                        query = query.Where(t => t.Status != null && t.Status.ToLower() == status.ToLower());
                         break;
                 }
             }
