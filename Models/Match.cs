@@ -35,5 +35,7 @@ namespace EsportsTournament.API.Models
         public string MatchStatus { get; set; } = "pending";
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+        public ICollection<MatchResult> MatchResults { get; set; } = new List<MatchResult>();
     }
 }
