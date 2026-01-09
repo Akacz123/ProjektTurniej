@@ -7,7 +7,7 @@ using System.Security.Claims;
 
 namespace EsportsTournament.API.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/users")]
     [ApiController]
     public class UserController : ControllerBase
     {
@@ -16,6 +16,24 @@ namespace EsportsTournament.API.Controllers
         public UserController(ApplicationDbContext context)
         {
             _context = context;
+        }
+
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<object>>> GetAllUsers()
+        {
+            var users = await _context.Users.ToListAsync();
+
+            return Ok(users.Select(u => new
+            {
+                u.UserId,
+                u.Username,
+                u.Email,
+                u.FirstName,
+                u.LastName,
+                u.AvatarUrl,
+                u.Role,
+                u.CreatedAt
+            }));
         }
 
         [HttpGet("profile")]
