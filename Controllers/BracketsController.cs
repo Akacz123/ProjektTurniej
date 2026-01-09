@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using EsportsTournament.API.Data;
 using EsportsTournament.API.Models;
-using EsportsTournament.API.Models.DTOs; // <--- WAŻNE: Dodaj ten using
+using EsportsTournament.API.Models.DTOs;
 using System.Security.Claims;
 
 namespace EsportsTournament.API.Controllers
@@ -19,7 +19,7 @@ namespace EsportsTournament.API.Controllers
             _context = context;
         }
 
-        // --- GENEROWANIE DRABINKI ---
+        // ... [Metoda GenerateBracket pozostaje bez zmian] ...
         [HttpPost("generate/{tournamentId}")]
         [Authorize(Roles = "admin,organizer")]
         public async Task<IActionResult> GenerateBracket(int tournamentId)
@@ -101,7 +101,7 @@ namespace EsportsTournament.API.Controllers
             return Ok(new { Message = "Drabinka wygenerowana!", MatchesCount = matchesToAdd.Count });
         }
 
-        // --- POBIERANIE DRABINKI ---
+        // --- ZMODYFIKOWANA METODA GET BRACKET ---
         [HttpGet("{tournamentId}")]
         public async Task<IActionResult> GetBracket(int tournamentId)
         {
@@ -114,6 +114,7 @@ namespace EsportsTournament.API.Controllers
 
             if (!matches.Any()) return NotFound("Brak drabinki.");
 
+            // Pobieramy ID wszystkich uczestników
             var teamIds = matches.Where(m => m.Participant1Type == "team")
                                  .SelectMany(m => new[] { m.Participant1Id, m.Participant2Id })
                                  .OfType<int>().Distinct().ToList();
@@ -122,11 +123,13 @@ namespace EsportsTournament.API.Controllers
                                  .SelectMany(m => new[] { m.Participant1Id, m.Participant2Id })
                                  .OfType<int>().Distinct().ToList();
 
-            var teams = await _context.Teams
+            // Pobieramy info o drużynach (w tym Kapitana!)
+            var teamsData = await _context.Teams
                 .Where(t => teamIds.Contains(t.TeamId))
-                .ToDictionaryAsync(t => t.TeamId, t => t.TeamName);
+                .ToDictionaryAsync(t => t.TeamId, t => new { t.TeamName, t.CaptainId });
 
-            var users = await _context.Users
+            // Pobieramy info o userach
+            var usersData = await _context.Users
                 .Where(u => userIds.Contains(u.UserId))
                 .ToDictionaryAsync(u => u.UserId, u => u.Username);
 
@@ -134,19 +137,43 @@ namespace EsportsTournament.API.Controllers
             {
                 var pendingResult = m.MatchResults.FirstOrDefault(r => r.ResultStatus == "pending");
 
+                // Logika wyciągania Kapitana
+                int? GetCaptainId(int? pId, string type)
+                {
+                    if (!pId.HasValue) return null;
+                    if (type == "team" && teamsData.ContainsKey(pId.Value)) return teamsData[pId.Value].CaptainId;
+                    if (type == "user") return pId.Value; // W trybie solo gracz jest swoim kapitanem
+                    return null;
+                }
+
+                // Logika nazwy
+                string GetName(int? pId, string type)
+                {
+                    if (!pId.HasValue) return "TBA";
+                    if (type == "team" && teamsData.ContainsKey(pId.Value)) return teamsData[pId.Value].TeamName;
+                    if (type == "user" && usersData.ContainsKey(pId.Value)) return usersData[pId.Value];
+                    return "Unknown";
+                }
+
                 return new MatchDto
                 {
                     MatchId = m.MatchId,
                     MatchNumber = m.MatchNumber,
                     RoundNumber = m.RoundNumber,
                     MatchStatus = pendingResult != null ? "pending" : m.MatchStatus,
+
                     Participant1Id = m.Participant1Id,
+                    Participant1Name = GetName(m.Participant1Id, m.Participant1Type),
+                    Participant1CaptainId = GetCaptainId(m.Participant1Id, m.Participant1Type), // <--- Przypisanie
+
                     Participant2Id = m.Participant2Id,
+                    Participant2Name = GetName(m.Participant2Id, m.Participant2Type),
+                    Participant2CaptainId = GetCaptainId(m.Participant2Id, m.Participant2Type), // <--- Przypisanie
+
                     WinnerId = m.WinnerId,
-                    Participant1Name = GetName(m.Participant1Id, m.Participant1Type, teams, users),
-                    Participant2Name = GetName(m.Participant2Id, m.Participant2Type, teams, users),
                     Score1 = (m.MatchStatus == "finished" && m.WinnerId == m.Participant1Id) ? 1 : 0,
                     Score2 = (m.MatchStatus == "finished" && m.WinnerId == m.Participant2Id) ? 1 : 0,
+
                     PendingResult = pendingResult != null ? new PendingResultDto
                     {
                         ResultId = pendingResult.ResultId,
@@ -160,14 +187,7 @@ namespace EsportsTournament.API.Controllers
             return Ok(matchDtos);
         }
 
-        private string GetName(int? id, string type, Dictionary<int, string> teams, Dictionary<int, string> users)
-        {
-            if (!id.HasValue) return "TBA";
-            if (type == "team") return teams.ContainsKey(id.Value) ? teams[id.Value] : "Team " + id;
-            return users.ContainsKey(id.Value) ? users[id.Value] : "User " + id;
-        }
-
-        // --- ZGŁASZANIE WYNIKU ---
+        // ... [Reszta metod: ReportResult, AcceptResult, DisputeResult, AdminResolve, DeleteBracket - bez zmian] ...
         [HttpPost("report-result")]
         [Authorize]
         public async Task<IActionResult> ReportResult([FromBody] MatchResultDto dto)
@@ -211,7 +231,6 @@ namespace EsportsTournament.API.Controllers
             return Ok(new { Message = "Wynik zgłoszony." });
         }
 
-        // --- AKCEPTACJA WYNIKU ---
         [HttpPost("accept-result/{resultId}")]
         [Authorize]
         public async Task<IActionResult> AcceptResult(int resultId)
@@ -244,7 +263,6 @@ namespace EsportsTournament.API.Controllers
             return Ok(new { Message = "Zatwierdzono!" });
         }
 
-        // --- SPÓR ---
         [HttpPost("dispute-result/{resultId}")]
         [Authorize]
         public async Task<IActionResult> DisputeResult(int resultId)
@@ -267,7 +285,6 @@ namespace EsportsTournament.API.Controllers
             return Ok(new { Message = "Spór zgłoszony." });
         }
 
-        // --- ADMIN RESOLVE ---
         [HttpPost("admin-resolve/{matchId}")]
         [Authorize(Roles = "admin,organizer")]
         public async Task<IActionResult> AdminResolveMatch(int matchId, [FromBody] MatchResultDto finalResult)
@@ -292,7 +309,6 @@ namespace EsportsTournament.API.Controllers
             return Ok(new { Message = "Spór rozwiązany." });
         }
 
-        // --- DELETE BRACKET ---
         [HttpDelete("delete/{tournamentId}")]
         [Authorize(Roles = "admin,organizer")]
         public async Task<IActionResult> DeleteBracket(int tournamentId)
@@ -316,8 +332,6 @@ namespace EsportsTournament.API.Controllers
         private async Task FinalizeMatchAndAdvance(Match match, int scoreA, int scoreB)
         {
             match.MatchStatus = "finished";
-
-            // Używamy !.Value, bo zakładamy, że uczestnicy istnieją przy kończeniu meczu
             int winnerId = (scoreA > scoreB) ? match.Participant1Id!.Value : match.Participant2Id!.Value;
 
             match.WinnerId = winnerId;
