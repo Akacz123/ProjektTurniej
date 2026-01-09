@@ -19,7 +19,6 @@ namespace EsportsTournament.API.Controllers
             _context = context;
         }
 
-        // ... [Metoda GenerateBracket pozostaje bez zmian] ...
         [HttpPost("generate/{tournamentId}")]
         [Authorize(Roles = "admin,organizer")]
         public async Task<IActionResult> GenerateBracket(int tournamentId)
@@ -28,17 +27,18 @@ namespace EsportsTournament.API.Controllers
             if (tournament == null) return NotFound("Nie znaleziono turnieju.");
 
             if (await _context.Matches.AnyAsync(m => m.TournamentId == tournamentId))
-                return BadRequest("Drabinka już istnieje. Usuń ją najpierw, aby wygenerować nową.");
+                return BadRequest("Drabinka już istnieje.");
 
             List<int> participantIds = new List<int>();
             string pType = "";
 
-            if (tournament.RegistrationType.ToLower() == "team")
+            if (tournament.RegistrationType?.ToLower() == "team")
             {
                 pType = "team";
                 participantIds = await _context.TournamentRegistrationsTeam
                     .Where(r => r.TournamentId == tournamentId && r.Status == "Confirmed")
                     .Select(r => r.TeamId)
+                    .Distinct()
                     .ToListAsync();
             }
             else
@@ -47,28 +47,28 @@ namespace EsportsTournament.API.Controllers
                 participantIds = await _context.TournamentRegistrationIndividual
                     .Where(r => r.TournamentId == tournamentId && r.Status.ToLower() == "confirmed")
                     .Select(r => r.UserId)
+                    .Distinct()
                     .ToListAsync();
             }
 
             int count = participantIds.Count;
-            if (count < 2 || (count & (count - 1)) != 0)
-            {
-                int nextPow2 = (int)Math.Pow(2, Math.Ceiling(Math.Log2(count)));
-                return BadRequest($"Liczba uczestników ({count}) musi być potęgą dwójki (2, 4, 8, 16...).");
-            }
+            if (count < 2) return BadRequest("Za mało uczestników (minimum 2).");
+
+            int nextPow2 = (int)Math.Pow(2, Math.Ceiling(Math.Log2(count)));
+            int byes = nextPow2 - count;
 
             var rng = new Random();
             var shuffled = participantIds.OrderBy(x => rng.Next()).ToList();
 
             var matchesToAdd = new List<Match>();
-            int totalRounds = (int)Math.Log2(count);
+            int totalRounds = (int)Math.Log2(nextPow2);
 
             for (int round = 1; round <= totalRounds; round++)
             {
-                int matchesInRound = count / (int)Math.Pow(2, round);
+                int matchesInRound = nextPow2 / (int)Math.Pow(2, round);
                 for (int matchNum = 1; matchNum <= matchesInRound; matchNum++)
                 {
-                    var match = new Match
+                    matchesToAdd.Add(new Match
                     {
                         TournamentId = tournamentId,
                         RoundNumber = round,
@@ -77,20 +77,38 @@ namespace EsportsTournament.API.Controllers
                         CreatedAt = DateTime.UtcNow,
                         Participant1Type = pType,
                         Participant2Type = pType
-                    };
+                    });
+                }
+            }
 
-                    if (round == 1)
+            var round1Matches = matchesToAdd.Where(m => m.RoundNumber == 1).OrderBy(m => m.MatchNumber).ToList();
+            int pIndex = 0;
+
+            for (int i = 0; i < round1Matches.Count; i++)
+            {
+                var match = round1Matches[i];
+
+                if (pIndex < shuffled.Count)
+                {
+                    match.Participant1Id = shuffled[pIndex];
+                    pIndex++;
+                }
+
+                if (pIndex < shuffled.Count)
+                {
+                    match.Participant2Id = shuffled[pIndex];
+                    pIndex++;
+                }
+                else
+                {
+                    match.Participant2Id = null;
+
+                    if (match.Participant1Id.HasValue)
                     {
-                        int idx = (matchNum - 1) * 2;
-                        match.Participant1Id = shuffled[idx];
-                        match.Participant2Id = shuffled[idx + 1];
+                        match.MatchStatus = "finished";
+                        match.WinnerId = match.Participant1Id;
+                        match.WinnerType = pType;
                     }
-                    else
-                    {
-                        match.Participant1Id = null;
-                        match.Participant2Id = null;
-                    }
-                    matchesToAdd.Add(match);
                 }
             }
 
@@ -98,10 +116,15 @@ namespace EsportsTournament.API.Controllers
             tournament.Status = "in_progress";
             await _context.SaveChangesAsync();
 
-            return Ok(new { Message = "Drabinka wygenerowana!", MatchesCount = matchesToAdd.Count });
+            var byeMatches = matchesToAdd.Where(m => m.RoundNumber == 1 && m.MatchStatus == "finished").ToList();
+            foreach (var bm in byeMatches)
+            {
+                await FinalizeMatchAndAdvance(bm, 1, 0);
+            }
+
+            return Ok(new { Message = $"Drabinka wygenerowana! Drużyn: {count}. Wolne losy: {byes}." });
         }
 
-        // --- ZMODYFIKOWANA METODA GET BRACKET ---
         [HttpGet("{tournamentId}")]
         public async Task<IActionResult> GetBracket(int tournamentId)
         {
@@ -114,7 +137,6 @@ namespace EsportsTournament.API.Controllers
 
             if (!matches.Any()) return NotFound("Brak drabinki.");
 
-            // Pobieramy ID wszystkich uczestników
             var teamIds = matches.Where(m => m.Participant1Type == "team")
                                  .SelectMany(m => new[] { m.Participant1Id, m.Participant2Id })
                                  .OfType<int>().Distinct().ToList();
@@ -123,12 +145,10 @@ namespace EsportsTournament.API.Controllers
                                  .SelectMany(m => new[] { m.Participant1Id, m.Participant2Id })
                                  .OfType<int>().Distinct().ToList();
 
-            // Pobieramy info o drużynach (w tym Kapitana!)
             var teamsData = await _context.Teams
                 .Where(t => teamIds.Contains(t.TeamId))
                 .ToDictionaryAsync(t => t.TeamId, t => new { t.TeamName, t.CaptainId });
 
-            // Pobieramy info o userach
             var usersData = await _context.Users
                 .Where(u => userIds.Contains(u.UserId))
                 .ToDictionaryAsync(u => u.UserId, u => u.Username);
@@ -136,23 +156,39 @@ namespace EsportsTournament.API.Controllers
             var matchDtos = matches.Select(m =>
             {
                 var pendingResult = m.MatchResults.FirstOrDefault(r => r.ResultStatus == "pending");
+                var confirmedResult = m.MatchResults.FirstOrDefault(r => r.ResultStatus == "confirmed" || r.ResultStatus == "confirmed_by_admin");
 
-                // Logika wyciągania Kapitana
-                int? GetCaptainId(int? pId, string type)
+                int? GetCaptainId(int? pId, string? type)
                 {
-                    if (!pId.HasValue) return null;
+                    if (!pId.HasValue || string.IsNullOrEmpty(type)) return null;
                     if (type == "team" && teamsData.ContainsKey(pId.Value)) return teamsData[pId.Value].CaptainId;
-                    if (type == "user") return pId.Value; // W trybie solo gracz jest swoim kapitanem
+                    if (type == "user") return pId.Value;
                     return null;
                 }
 
-                // Logika nazwy
-                string GetName(int? pId, string type)
+                string GetName(int? pId, string? type)
                 {
-                    if (!pId.HasValue) return "TBA";
+                    if (!pId.HasValue || string.IsNullOrEmpty(type)) return "BYE";
                     if (type == "team" && teamsData.ContainsKey(pId.Value)) return teamsData[pId.Value].TeamName;
                     if (type == "user" && usersData.ContainsKey(pId.Value)) return usersData[pId.Value];
                     return "Unknown";
+                }
+
+                int? score1 = null;
+                int? score2 = null;
+
+                if (m.MatchStatus == "finished")
+                {
+                    if (confirmedResult != null)
+                    {
+                        score1 = confirmedResult.Participant1Score;
+                        score2 = confirmedResult.Participant2Score;
+                    }
+                    else if (m.WinnerId.HasValue)
+                    {
+                        score1 = (m.WinnerId == m.Participant1Id) ? 1 : 0;
+                        score2 = (m.WinnerId == m.Participant2Id) ? 1 : 0;
+                    }
                 }
 
                 return new MatchDto
@@ -164,15 +200,15 @@ namespace EsportsTournament.API.Controllers
 
                     Participant1Id = m.Participant1Id,
                     Participant1Name = GetName(m.Participant1Id, m.Participant1Type),
-                    Participant1CaptainId = GetCaptainId(m.Participant1Id, m.Participant1Type), // <--- Przypisanie
+                    Participant1CaptainId = GetCaptainId(m.Participant1Id, m.Participant1Type),
 
                     Participant2Id = m.Participant2Id,
                     Participant2Name = GetName(m.Participant2Id, m.Participant2Type),
-                    Participant2CaptainId = GetCaptainId(m.Participant2Id, m.Participant2Type), // <--- Przypisanie
+                    Participant2CaptainId = GetCaptainId(m.Participant2Id, m.Participant2Type),
 
                     WinnerId = m.WinnerId,
-                    Score1 = (m.MatchStatus == "finished" && m.WinnerId == m.Participant1Id) ? 1 : 0,
-                    Score2 = (m.MatchStatus == "finished" && m.WinnerId == m.Participant2Id) ? 1 : 0,
+                    Score1 = score1,
+                    Score2 = score2,
 
                     PendingResult = pendingResult != null ? new PendingResultDto
                     {
@@ -187,7 +223,6 @@ namespace EsportsTournament.API.Controllers
             return Ok(matchDtos);
         }
 
-        // ... [Reszta metod: ReportResult, AcceptResult, DisputeResult, AdminResolve, DeleteBracket - bez zmian] ...
         [HttpPost("report-result")]
         [Authorize]
         public async Task<IActionResult> ReportResult([FromBody] MatchResultDto dto)
@@ -243,7 +278,7 @@ namespace EsportsTournament.API.Controllers
             if (result == null) return NotFound();
 
             var match = result.Match;
-            if (match == null) return NotFound("Nie znaleziono meczu powiązanego z wynikiem.");
+            if (match == null) return NotFound("Nie znaleziono meczu.");
 
             if (result.ReportedBy == userId) return BadRequest("Nie możesz zaakceptować własnego zgłoszenia!");
 
@@ -332,6 +367,7 @@ namespace EsportsTournament.API.Controllers
         private async Task FinalizeMatchAndAdvance(Match match, int scoreA, int scoreB)
         {
             match.MatchStatus = "finished";
+
             int winnerId = (scoreA > scoreB) ? match.Participant1Id!.Value : match.Participant2Id!.Value;
 
             match.WinnerId = winnerId;

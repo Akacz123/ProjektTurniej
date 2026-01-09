@@ -37,13 +37,14 @@ namespace EsportsTournament.API.Controllers
                         query = query.Where(t => t.StartDate > now).OrderBy(t => t.StartDate);
                         break;
                     case "ongoing":
-                        query = query.Where(t => t.StartDate <= now && t.EndDate > now);
+                        query = query.Where(t => t.StartDate <= now && t.EndDate > now && t.Status.ToLower() != "finished" && t.Status.ToLower() != "completed");
                         break;
                     case "finished":
-                        query = query.Where(t => t.EndDate <= now).OrderByDescending(t => t.EndDate);
+                        query = query.Where(t => t.EndDate <= now || t.Status.ToLower() == "finished" || t.Status.ToLower() == "completed")
+                                     .OrderByDescending(t => t.EndDate);
                         break;
                     default:
-                        query = query.Where(t => t.Status == status);
+                        query = query.Where(t => t.Status.ToLower() == status.ToLower());
                         break;
                 }
             }
