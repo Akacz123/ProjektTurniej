@@ -8,13 +8,6 @@ namespace EsportsTournament.API.Data
         {
             context.Database.EnsureCreated();
 
-            if (context.Matches.Any())
-            {
-                context.MatchResults.RemoveRange(context.MatchResults);
-                context.Matches.RemoveRange(context.Matches);
-                context.SaveChanges();
-            }
-
             if (context.Users.Count() < 2)
             {
                 var users = new List<User>
@@ -30,9 +23,10 @@ namespace EsportsTournament.API.Data
                 context.SaveChanges();
             }
 
+            
             if (!context.Teams.Any())
             {
-                var captain = context.Users.First(); 
+                var captain = context.Users.First();
                 var teams = new List<Team>
                 {
                     new Team { TeamName = "T1", CaptainId = captain.UserId, Description = "Legendarna drużyna LoL." },
@@ -46,64 +40,7 @@ namespace EsportsTournament.API.Data
                 context.SaveChanges();
             }
 
-            var existingTeams = context.Teams.ToList();
-            var tournaments = context.Tournaments.ToList();
-            var adminUser = context.Users.FirstOrDefault();
-            var random = new Random();
-
-            if (!existingTeams.Any() || !tournaments.Any()) return;
-
-            var matches = new List<Match>();
-
-            foreach (var tournament in tournaments)
-            {
-                for (int i = 1; i <= 5; i++) 
-                {
-                  
-                    var team1 = existingTeams[random.Next(existingTeams.Count)];
-                    var team2 = existingTeams[random.Next(existingTeams.Count)];
-
-                
-                    while (team1.TeamId == team2.TeamId)
-                    {
-                        team2 = existingTeams[random.Next(existingTeams.Count)];
-                    }
-
-                    var match = new Match
-                    {
-                        TournamentId = tournament.TournamentId,
-                        RoundNumber = 1,
-                        MatchNumber = i,
-                        Participant1Type = "team",
-                        Participant2Type = "team",
-        
-                        Participant1Id = team1.TeamId,
-                        Participant2Id = team2.TeamId,
-                        ScheduledTime = DateTime.UtcNow.AddDays(random.Next(-5, 10)),
-                        MatchStatus = "completed"
-                    };
-                    matches.Add(match);
-                }
-            }
-
-            context.Matches.AddRange(matches);
-            context.SaveChanges();
-
-            var results = new List<MatchResult>();
-            foreach (var match in matches)
-            {
-                results.Add(new MatchResult
-                {
-                    MatchId = match.MatchId,
-                    Participant1Score = random.Next(0, 3), 
-                    Participant2Score = random.Next(0, 3),
-                    ReportedBy = adminUser != null ? adminUser.UserId : 1,
-                    ResultStatus = "confirmed",
-                    ReportedAt = DateTime.UtcNow
-                });
-            }
-            context.MatchResults.AddRange(results);
-            context.SaveChanges();
+           
         }
     }
 }
