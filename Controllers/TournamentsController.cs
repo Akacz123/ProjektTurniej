@@ -19,7 +19,6 @@ namespace EsportsTournament.API.Controllers
             _context = context;
         }
 
-        // --- NOWY ENDPOINT DO CZYSZCZENIA BŁĘDNYCH ZAPISÓW ---
         [HttpDelete("{id}/clear-registrations")]
         [Authorize(Roles = "admin,organizer")]
         public async Task<IActionResult> ClearRegistrations(int id)
@@ -27,11 +26,9 @@ namespace EsportsTournament.API.Controllers
             var tournament = await _context.Tournaments.FindAsync(id);
             if (tournament == null) return NotFound("Nie znaleziono turnieju.");
 
-            // Sprawdź czy jest aktywna drabinka (żeby nie psuć trwającego)
             if (await _context.Matches.AnyAsync(m => m.TournamentId == id))
                 return BadRequest("Turniej ma już wygenerowaną drabinkę. Usuń najpierw drabinkę.");
 
-            // Usuń wszystkie zapisy
             var teams = _context.TournamentRegistrationsTeam.Where(r => r.TournamentId == id);
             _context.TournamentRegistrationsTeam.RemoveRange(teams);
 
@@ -57,18 +54,28 @@ namespace EsportsTournament.API.Controllers
                 switch (status.ToLower())
                 {
                     case "upcoming":
-                        query = query.Where(t => t.StartDate > now).OrderBy(t => t.StartDate);
+                        query = query.Where(t =>
+                            (t.StartDate > now) ||
+                            (t.Status != null && (t.Status.ToLower() == "upcoming" || t.Status.ToLower() == "registration" || t.Status.ToLower() == "pending"))
+                        ).OrderBy(t => t.StartDate);
                         break;
+
                     case "ongoing":
-                        query = query.Where(t => t.StartDate <= now && t.EndDate > now && t.Status.ToLower() != "finished" && t.Status.ToLower() != "completed");
+                        query = query.Where(t =>
+                            ((t.StartDate <= now && t.EndDate > now) && (t.Status == null || (t.Status.ToLower() != "finished" && t.Status.ToLower() != "completed"))) ||
+                            (t.Status != null && (t.Status.ToLower() == "ongoing" || t.Status.ToLower() == "in_progress"))
+                        );
                         break;
+
                     case "finished":
-                        // POPRAWKA FILTRA FINISHED (CASE INSENSITIVE)
-                        query = query.Where(t => t.EndDate <= now || t.Status.ToLower() == "finished" || t.Status.ToLower() == "completed")
-                                     .OrderByDescending(t => t.EndDate);
+                        query = query.Where(t =>
+                            (t.EndDate <= now) ||
+                            (t.Status != null && (t.Status.ToLower() == "finished" || t.Status.ToLower() == "completed" || t.Status.ToLower() == "ended"))
+                        ).OrderByDescending(t => t.EndDate);
                         break;
+
                     default:
-                        query = query.Where(t => t.Status.ToLower() == status.ToLower());
+                        query = query.Where(t => t.Status != null && t.Status.ToLower() == status.ToLower());
                         break;
                 }
             }
