@@ -27,7 +27,7 @@ namespace EsportsTournament.API.Controllers
             if (tournament == null) return NotFound("Nie znaleziono turnieju.");
 
             if (await _context.Matches.AnyAsync(m => m.TournamentId == tournamentId))
-                return BadRequest("Drabinka już istnieje.");
+                return BadRequest("Drabinka już istnieje. Usuń ją najpierw.");
 
             List<int> participantIds = new List<int>();
             string pType = "";
@@ -52,7 +52,7 @@ namespace EsportsTournament.API.Controllers
             }
 
             int count = participantIds.Count;
-            if (count < 2) return BadRequest("Za mało uczestników (minimum 2).");
+            if (count < 2) return BadRequest($"Za mało uczestników: {count}. Wymagane minimum 2.");
 
             int nextPow2 = (int)Math.Pow(2, Math.Ceiling(Math.Log2(count)));
             int byes = nextPow2 - count;
@@ -102,7 +102,6 @@ namespace EsportsTournament.API.Controllers
                 else
                 {
                     match.Participant2Id = null;
-
                     if (match.Participant1Id.HasValue)
                     {
                         match.MatchStatus = "finished";
@@ -122,7 +121,7 @@ namespace EsportsTournament.API.Controllers
                 await FinalizeMatchAndAdvance(bm, 1, 0);
             }
 
-            return Ok(new { Message = $"Drabinka wygenerowana! Drużyn: {count}. Wolne losy: {byes}." });
+            return Ok(new { Message = $"Drabinka wygenerowana! Uczestników: {count}. Wolne losy: {byes}." });
         }
 
         [HttpGet("{tournamentId}")]
@@ -135,7 +134,7 @@ namespace EsportsTournament.API.Controllers
                 .ThenBy(m => m.MatchNumber)
                 .ToListAsync();
 
-            if (!matches.Any()) return NotFound("Brak drabinki.");
+            if (!matches.Any()) return Ok(new List<MatchDto>());
 
             var teamIds = matches.Where(m => m.Participant1Type == "team")
                                  .SelectMany(m => new[] { m.Participant1Id, m.Participant2Id })
@@ -168,7 +167,7 @@ namespace EsportsTournament.API.Controllers
 
                 string GetName(int? pId, string? type)
                 {
-                    if (!pId.HasValue || string.IsNullOrEmpty(type)) return "BYE";
+                    if (!pId.HasValue || string.IsNullOrEmpty(type)) return "WOLNY LOS";
                     if (type == "team" && teamsData.ContainsKey(pId.Value)) return teamsData[pId.Value].TeamName;
                     if (type == "user" && usersData.ContainsKey(pId.Value)) return usersData[pId.Value];
                     return "Unknown";
@@ -235,13 +234,21 @@ namespace EsportsTournament.API.Controllers
             if (match == null) return NotFound("Mecz nie istnieje.");
             if (match.MatchStatus == "finished") return BadRequest("Mecz zakończony.");
 
-            bool isParticipant = false;
-            if (match.Participant1Type == "team")
-                isParticipant = await _context.Teams.AnyAsync(t => (t.TeamId == match.Participant1Id || t.TeamId == match.Participant2Id) && t.CaptainId == userId);
-            else
-                isParticipant = (match.Participant1Id == userId || match.Participant2Id == userId);
+            bool isP1 = false;
+            bool isP2 = false;
 
-            if (!isParticipant) return StatusCode(403, "Brak uprawnień.");
+            if (match.Participant1Type == "team")
+            {
+                isP1 = await _context.Teams.AnyAsync(t => t.TeamId == match.Participant1Id && t.CaptainId == userId);
+                isP2 = await _context.Teams.AnyAsync(t => t.TeamId == match.Participant2Id && t.CaptainId == userId);
+            }
+            else
+            {
+                isP1 = (match.Participant1Id == userId);
+                isP2 = (match.Participant2Id == userId);
+            }
+
+            if (!isP1 && !isP2) return StatusCode(403, "Brak uprawnień.");
 
             var existingReport = await _context.MatchResults
                 .FirstOrDefaultAsync(r => r.MatchId == dto.MatchId && r.ResultStatus == "pending");
@@ -261,6 +268,37 @@ namespace EsportsTournament.API.Controllers
 
             _context.MatchResults.Add(result);
             match.MatchStatus = "pending";
+
+            int? opponentId = isP1 ? match.Participant2Id : match.Participant1Id;
+            int? notificationReceiverId = null;
+
+            if (opponentId.HasValue)
+            {
+                if (match.Participant1Type == "team")
+                {
+                    var opTeam = await _context.Teams.FindAsync(opponentId.Value);
+                    notificationReceiverId = opTeam?.CaptainId;
+                }
+                else
+                {
+                    notificationReceiverId = opponentId.Value;
+                }
+            }
+
+            if (notificationReceiverId.HasValue)
+            {
+                _context.Notifications.Add(new Notification
+                {
+                    UserId = notificationReceiverId.Value,
+                    Title = "Wynik zgłoszony",
+                    Message = "Przeciwnik zgłosił wynik meczu. Wejdź w drabinkę i go zatwierdź lub zgłoś sprzeciw.",
+                    NotificationType = "MatchReport",
+                    RelatedId = match.MatchId,
+                    RelatedType = "Match",
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
+
             await _context.SaveChangesAsync();
 
             return Ok(new { Message = "Wynik zgłoszony." });
@@ -300,7 +338,7 @@ namespace EsportsTournament.API.Controllers
 
         [HttpPost("dispute-result/{resultId}")]
         [Authorize]
-        public async Task<IActionResult> DisputeResult(int resultId)
+        public async Task<IActionResult> DisputeResult(int resultId, [FromBody] DisputeResultDto dto)
         {
             var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("sub")?.Value;
             if (string.IsNullOrEmpty(userIdString)) return Unauthorized();
@@ -315,6 +353,8 @@ namespace EsportsTournament.API.Controllers
 
             result.ResultStatus = "disputed";
             result.Match.MatchStatus = "disputed";
+            result.Notes = $"SPÓR zgłoszony przez ID {userId}. Powód: {dto.Reason}. Dowód: {dto.ProofUrl ?? "brak"}";
+
             await _context.SaveChangesAsync();
 
             return Ok(new { Message = "Spór zgłoszony." });
@@ -324,8 +364,17 @@ namespace EsportsTournament.API.Controllers
         [Authorize(Roles = "admin,organizer")]
         public async Task<IActionResult> AdminResolveMatch(int matchId, [FromBody] MatchResultDto finalResult)
         {
+            var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("sub")?.Value;
+            if (string.IsNullOrEmpty(userIdString)) return Unauthorized();
+            int adminId = int.Parse(userIdString);
+
             var match = await _context.Matches.FindAsync(matchId);
             if (match == null) return NotFound();
+
+            if (match.Participant1Id == null || match.Participant2Id == null)
+            {
+                return BadRequest("Nie można rozstrzygnąć meczu bez uczestników.");
+            }
 
             var oldResults = _context.MatchResults.Where(r => r.MatchId == matchId);
             _context.MatchResults.RemoveRange(oldResults);
@@ -336,7 +385,11 @@ namespace EsportsTournament.API.Controllers
                 Participant1Score = finalResult.ScoreA,
                 Participant2Score = finalResult.ScoreB,
                 ResultStatus = "confirmed_by_admin",
-                ReportedAt = DateTime.UtcNow
+                ReportedAt = DateTime.UtcNow,
+                ReportedBy = adminId,
+                ConfirmedBy = adminId,
+                ConfirmedAt = DateTime.UtcNow,
+                Notes = "Rozstrzygnięcie administracyjne"
             };
             _context.MatchResults.Add(adminResult);
 
@@ -369,9 +422,12 @@ namespace EsportsTournament.API.Controllers
             match.MatchStatus = "finished";
 
             int winnerId = (scoreA > scoreB) ? match.Participant1Id!.Value : match.Participant2Id!.Value;
+            int loserId = (scoreA > scoreB) ? match.Participant2Id!.Value : match.Participant1Id!.Value;
 
             match.WinnerId = winnerId;
             match.WinnerType = match.Participant1Type;
+
+            await SendMatchResultNotifications(match, winnerId, loserId);
 
             int nextRound = match.RoundNumber + 1;
             int nextMatchNum = (int)Math.Ceiling((double)match.MatchNumber / 2);
@@ -393,6 +449,69 @@ namespace EsportsTournament.API.Controllers
                 if (tournament != null) tournament.Status = "finished";
             }
             await _context.SaveChangesAsync();
+        }
+
+        private async Task SendMatchResultNotifications(Match match, int winnerId, int loserId)
+        {
+            string winnerName = "Your Team";
+            string loserName = "Opponent Team";
+
+            List<int> winnerMemberIds = new List<int>();
+            List<int> loserMemberIds = new List<int>();
+
+            if (match.Participant1Type == "team")
+            {
+                var wTeam = await _context.Teams.FindAsync(winnerId);
+                var lTeam = await _context.Teams.FindAsync(loserId);
+                winnerName = wTeam?.TeamName ?? "Unknown";
+                loserName = lTeam?.TeamName ?? "Unknown";
+
+                winnerMemberIds = await _context.TeamMembers
+                    .Where(tm => tm.TeamId == winnerId && tm.Status == "Member")
+                    .Select(tm => tm.UserId)
+                    .ToListAsync();
+
+                loserMemberIds = await _context.TeamMembers
+                    .Where(tm => tm.TeamId == loserId && tm.Status == "Member")
+                    .Select(tm => tm.UserId)
+                    .ToListAsync();
+            }
+            else
+            {
+                var wUser = await _context.Users.FindAsync(winnerId);
+                var lUser = await _context.Users.FindAsync(loserId);
+                winnerName = wUser?.Username ?? "Unknown";
+                loserName = lUser?.Username ?? "Unknown";
+
+                winnerMemberIds.Add(winnerId);
+                loserMemberIds.Add(loserId);
+            }
+
+            foreach (var userId in winnerMemberIds)
+            {
+                _context.Notifications.Add(new Notification
+                {
+                    UserId = userId,
+                    Title = "Zwycięstwo!",
+                    Message = $"Gratulacje! Wygrałeś mecz przeciwko {loserName}.",
+                    NotificationType = "MatchResult",
+                    RelatedId = match.MatchId,
+                    RelatedType = "Match"
+                });
+            }
+
+            foreach (var userId in loserMemberIds)
+            {
+                _context.Notifications.Add(new Notification
+                {
+                    UserId = userId,
+                    Title = "Przegrana",
+                    Message = $"Niestety, przegrałeś mecz przeciwko {winnerName}.",
+                    NotificationType = "MatchResult",
+                    RelatedId = match.MatchId,
+                    RelatedType = "Match"
+                });
+            }
         }
     }
 }

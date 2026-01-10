@@ -35,4 +35,11 @@
         public int ScoreB { get; set; }
         public int ReportedBy { get; set; }
     }
+
+
+    public class DisputeResultDto
+    {
+        public string Reason { get; set; } = string.Empty;
+        public string? ProofUrl { get; set; }
+    }
 }
