@@ -55,27 +55,30 @@ namespace EsportsTournament.API.Controllers
                 {
                     case "upcoming":
                         query = query.Where(t =>
-                            (t.StartDate > now) ||
-                            (t.Status != null && (t.Status.ToLower() == "upcoming" || t.Status.ToLower() == "registration" || t.Status.ToLower() == "pending"))
+                            (t.Status != null && (t.Status.ToLower().Trim() == "upcoming" || t.Status.ToLower().Trim() == "registration"))
+                            ||
+                            ((t.Status == null || (t.Status.ToLower().Trim() != "finished" && t.Status.ToLower().Trim() != "completed" && t.Status.ToLower().Trim() != "ongoing" && t.Status.ToLower().Trim() != "in_progress")) && t.StartDate > now)
                         ).OrderBy(t => t.StartDate);
                         break;
 
                     case "ongoing":
                         query = query.Where(t =>
-                            ((t.StartDate <= now && t.EndDate > now) && (t.Status == null || (t.Status.ToLower() != "finished" && t.Status.ToLower() != "completed"))) ||
-                            (t.Status != null && (t.Status.ToLower() == "ongoing" || t.Status.ToLower() == "in_progress"))
+                            (t.Status != null && (t.Status.ToLower().Trim() == "ongoing" || t.Status.ToLower().Trim() == "in_progress"))
+                            ||
+                            ((t.Status == null || (t.Status.ToLower().Trim() != "finished" && t.Status.ToLower().Trim() != "completed" && t.Status.ToLower().Trim() != "upcoming")) && t.StartDate <= now && t.EndDate > now)
                         );
                         break;
 
                     case "finished":
                         query = query.Where(t =>
-                            (t.EndDate <= now) ||
-                            (t.Status != null && (t.Status.ToLower() == "finished" || t.Status.ToLower() == "completed" || t.Status.ToLower() == "ended"))
+                            (t.Status != null && (t.Status.ToLower().Trim() == "finished" || t.Status.ToLower().Trim() == "completed" || t.Status.ToLower().Trim() == "ended"))
+                            ||
+                            ((t.Status == null || (t.Status.ToLower().Trim() != "ongoing" && t.Status.ToLower().Trim() != "in_progress" && t.Status.ToLower().Trim() != "upcoming")) && t.EndDate <= now)
                         ).OrderByDescending(t => t.EndDate);
                         break;
 
                     default:
-                        query = query.Where(t => t.Status != null && t.Status.ToLower() == status.ToLower());
+                        query = query.Where(t => t.Status != null && t.Status.ToLower().Contains(status.ToLower()));
                         break;
                 }
             }
